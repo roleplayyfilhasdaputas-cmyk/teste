@@ -63,22 +63,6 @@ border-left:3px solid red;
 padding-left:10px;
 }
 
-.painel{
-display:flex;
-height:100%;
-}
-
-.lateral{
-width:300px;
-background:#111;
-padding:15px;
-overflow:auto;
-}
-
-.mapa{
-flex:1;
-}
-
 </style>
 
 </head>
@@ -97,7 +81,7 @@ flex:1;
 
 <a onclick="naviosMilitares()">🚢 Navios Militares</a>
 
-<a onclick="sat()">🛰 Satélites</a>
+<a onclick="sat()">🛰 Satélite</a>
 
 <a onclick="conflitos()">🌍 Conflitos</a>
 
@@ -132,30 +116,16 @@ function naviosMilitares(){
 
 document.getElementById("conteudo").innerHTML=`
 
-<div class="painel">
+<div style="display:flex;flex-direction:column;height:100%">
 
-<div class="lateral">
-
+<div class="feed">
 <h2>🚢 Radar Naval</h2>
-
-<div class="item">🚢 Porta-aviões</div>
-<div class="item">🚢 Destroyers</div>
-<div class="item">🚢 Fragatas</div>
-<div class="item">🚢 Submarinos</div>
-
-<p style="color:#aaa">
-Monitoramento global de embarcações.
-</p>
-
+<p>Monitoramento global de navios.</p>
 </div>
-
-<div class="mapa">
 
 <iframe
 src="https://www.marinetraffic.com/en/ais/embed/zoom:2/centery:20/centerx:0/maptype:4/shownames:true/shiptypes:8">
 </iframe>
-
-</div>
 
 </div>
 
@@ -167,33 +137,17 @@ function sat(){
 
 document.getElementById("conteudo").innerHTML=`
 
-<div class="painel">
+<div style="display:flex;flex-direction:column;height:100%">
 
-<div class="lateral">
-
-<h2>🛰 Monitoramento Espacial</h2>
-
-<div class="item">🛰 Satélites de comunicação</div>
-
-<div class="item">🛰 Satélites meteorológicos</div>
-
-<div class="item">🛰 Satélites militares</div>
-
-<div class="item">🛰 GPS / navegação</div>
-
-<div class="item">🛰 Constelações orbitais</div>
-
-<p style="color:#aaa">
-Mapa global de satélites orbitando a Terra em tempo quase real.
-</p>
-
+<div class="feed">
+<h2>🛰 Rastreamento da ISS</h2>
+<p>Posição da Estação Espacial Internacional em tempo real.</p>
 </div>
 
-<div class="mapa">
-
-<iframe src="https://stuffin.space/"></iframe>
-
-</div>
+<iframe
+src="https://isstracker.spaceflight.esa.int/"
+style="flex:1;border:none">
+</iframe>
 
 </div>
 
@@ -202,10 +156,8 @@ Mapa global de satélites orbitando a Terra em tempo quase real.
 }
 
 function conflitos(){
-
 document.getElementById("conteudo").innerHTML=
 `<iframe src="https://liveuamap.com/"></iframe>`;
-
 }
 
 async function foguetes(){
@@ -241,7 +193,7 @@ let res=await fetch(url);
 
 let data=await res.json();
 
-let html="<div class='feed'><h2>📰 Notícias Globais</h2>";
+let html="<div class='feed'><h2>📰 Notícias</h2>";
 
 data.items.slice(0,15).forEach(n => {
 
