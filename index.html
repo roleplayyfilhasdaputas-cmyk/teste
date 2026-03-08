@@ -5,7 +5,9 @@
 <head>
 
 <meta charset="UTF-8">
-<title>Radar de Gastos dos Deputados</title>
+<title>Radar Investigativo de Gastos Públicos</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 
@@ -27,10 +29,29 @@ font-weight:bold;
 padding:20px;
 }
 
+input{
+padding:10px;
+width:300px;
+margin-bottom:20px;
+border-radius:6px;
+border:none;
+}
+
+.card{
+background:#161616;
+padding:20px;
+margin-bottom:20px;
+border-radius:10px;
+}
+
+.alerta{
+color:#ff4444;
+font-weight:bold;
+}
+
 table{
 width:100%;
 border-collapse:collapse;
-background:#161616;
 }
 
 th,td{
@@ -42,10 +63,9 @@ th{
 background:#1f1f1f;
 }
 
-.valor-alto{
-color:#ff4444;
-font-weight:bold;
-}
+.risco-baixo{color:#00ff9c}
+.risco-medio{color:#ffcc00}
+.risco-alto{color:#ff4444;font-weight:bold}
 
 </style>
 
@@ -54,76 +74,232 @@ font-weight:bold;
 <body>
 
 <header>
-Radar de Gastos Públicos 🇧🇷
+Radar Investigativo de Gastos 🇧🇷
 </header>
 
 <div class="container">
 
-<h2>Gastos recentes de deputados</h2>
+<input id="busca" placeholder="Buscar deputado ou fornecedor">
+
+<div class="card">
+
+<h3>🚨 Alertas da IA Investigadora</h3>
+<div id="alertas"></div>
+
+</div>
+
+<div class="card">
+
+<h3>🧠 Score de risco por deputado</h3>
+<div id="score"></div>
+
+</div>
+
+<div class="card">
+
+<h3>🏆 Ranking de gastos</h3>
+<div id="ranking"></div>
+
+</div>
+
+<div class="card">
+
+<h3>🏢 Fornecedores com mais pagamentos</h3>
+<div id="fornecedores"></div>
+
+</div>
+
+<div class="card">
+
+<h3>📊 Distribuição de despesas</h3>
+<canvas id="grafico"></canvas>
+
+</div>
+
+<div class="card">
+
+<h3>📋 Gastos recentes</h3>
 
 <table>
 
 <thead>
-
 <tr>
 <th>Deputado</th>
-<th>Tipo de despesa</th>
+<th>Despesa</th>
 <th>Valor</th>
-<th>Data</th>
 <th>Fornecedor</th>
+<th>Data</th>
 </tr>
-
 </thead>
 
-<tbody id="tabela">
-
-</tbody>
+<tbody id="tabela"></tbody>
 
 </table>
 
 </div>
 
+</div>
+
 <script>
+
+let grafico
 
 async function carregar(){
 
-const url="https://dadosabertos.camara.leg.br/api/v2/despesas?itens=30&ordem=DESC&ordenarPor=dataDocumento"
+const url="https://dadosabertos.camara.leg.br/api/v2/despesas?itens=80&ordem=DESC&ordenarPor=dataDocumento"
 
-const resposta=await fetch(url)
+const res=await fetch(url)
+const json=await res.json()
 
-const json=await resposta.json()
+const dados=json.dados
 
 const tabela=document.getElementById("tabela")
+const alertas=document.getElementById("alertas")
+const rankingDiv=document.getElementById("ranking")
+const fornecedoresDiv=document.getElementById("fornecedores")
+const scoreDiv=document.getElementById("score")
 
-json.dados.forEach(d=>{
+tabela.innerHTML=""
+alertas.innerHTML=""
+rankingDiv.innerHTML=""
+fornecedoresDiv.innerHTML=""
+scoreDiv.innerHTML=""
 
-let classe=""
+const fornecedores={}
+const deputados={}
+const categorias={}
+const risco={}
 
-if(d.valorLiquido>5000){
-
-classe="valor-alto"
-
-}
+dados.forEach(g=>{
 
 const linha=document.createElement("tr")
 
 linha.innerHTML=`
-
-<td>${d.nomeDeputado}</td>
-<td>${d.tipoDespesa}</td>
-<td class="${classe}">R$ ${d.valorLiquido}</td>
-<td>${d.dataDocumento}</td>
-<td>${d.nomeFornecedor}</td>
-
+<td>${g.nomeDeputado}</td>
+<td>${g.tipoDespesa}</td>
+<td>R$ ${g.valorLiquido}</td>
+<td>${g.nomeFornecedor}</td>
+<td>${g.dataDocumento}</td>
 `
 
 tabela.appendChild(linha)
 
+if(!fornecedores[g.nomeFornecedor]) fornecedores[g.nomeFornecedor]=0
+fornecedores[g.nomeFornecedor]++
+
+if(!deputados[g.nomeDeputado]) deputados[g.nomeDeputado]=0
+deputados[g.nomeDeputado]+=g.valorLiquido
+
+if(!risco[g.nomeDeputado]) risco[g.nomeDeputado]=0
+
+if(!categorias[g.tipoDespesa]) categorias[g.tipoDespesa]=0
+categorias[g.tipoDespesa]+=g.valorLiquido
+
+// regras da IA
+
+if(g.valorLiquido>10000) risco[g.nomeDeputado]+=2
+if(g.valorLiquido>20000) risco[g.nomeDeputado]+=4
+
+})
+
+Object.keys(fornecedores).forEach(f=>{
+
+if(fornecedores[f]>6){
+
+alertas.innerHTML+=`
+<p class="alerta">
+⚠ fornecedor aparece muitas vezes: ${f}
+</p>
+`
+
+}
+
+})
+
+Object.keys(risco).forEach(d=>{
+
+let classe="risco-baixo"
+let texto="baixo"
+
+if(risco[d]>5){
+classe="risco-medio"
+texto="médio"
+}
+
+if(risco[d]>10){
+classe="risco-alto"
+texto="alto"
+}
+
+scoreDiv.innerHTML+=`
+<p class="${classe}">
+${d} — risco ${texto} (score ${risco[d]})
+</p>
+`
+
+})
+
+const ranking=Object.entries(deputados)
+.sort((a,b)=>b[1]-a[1])
+.slice(0,5)
+
+ranking.forEach(r=>{
+
+rankingDiv.innerHTML+=`
+<p>${r[0]} — R$ ${Math.round(r[1]).toLocaleString()}</p>
+`
+
+})
+
+Object.keys(fornecedores)
+.sort((a,b)=>fornecedores[b]-fornecedores[a])
+.slice(0,5)
+.forEach(f=>{
+
+fornecedoresDiv.innerHTML+=`
+<p>${f} — ${fornecedores[f]} pagamentos</p>
+`
+
+})
+
+const labels=Object.keys(categorias)
+const valores=Object.values(categorias)
+
+if(grafico) grafico.destroy()
+
+grafico=new Chart(
+document.getElementById("grafico"),
+{
+type:'bar',
+data:{
+labels:labels,
+datasets:[{
+label:"Total gasto",
+data:valores
+}]
+}
 })
 
 }
 
 carregar()
+
+setInterval(carregar,60000)
+
+document.getElementById("busca").addEventListener("keyup",function(){
+
+const filtro=this.value.toLowerCase()
+
+document.querySelectorAll("#tabela tr").forEach(linha=>{
+
+linha.style.display=
+linha.innerText.toLowerCase().includes(filtro)
+? ""
+: "none"
+
+})
+
+})
 
 </script>
 
