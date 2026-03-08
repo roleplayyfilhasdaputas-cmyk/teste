@@ -1,56 +1,51 @@
 <!DOCTYPE html>
 <html lang="pt-br">
-
 <head>
 <meta charset="UTF-8">
-<title>Radar Investigativo de Gastos Públicos</title>
+<title>Painel Investigativo de Gastos Públicos</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 
 body{
-margin:0;
-font-family:Arial;
 background:#0b0b0b;
 color:white;
+font-family:Arial;
+margin:0;
 }
 
 header{
-background:#c4170c;
+background:#c40000;
 padding:20px;
-font-size:28px;
+font-size:24px;
 font-weight:bold;
 }
 
 .container{
 padding:20px;
-max-width:1400px;
-margin:auto;
+}
+
+.search{
+display:flex;
+gap:10px;
+margin-bottom:20px;
 }
 
 input{
 padding:10px;
-width:300px;
 border-radius:6px;
 border:none;
+width:250px;
 }
 
 button{
-padding:10px;
+background:#c40000;
 border:none;
-border-radius:6px;
-background:#c4170c;
 color:white;
+padding:10px 15px;
+border-radius:6px;
 cursor:pointer;
-margin-left:10px;
-}
-
-.card{
-background:#161616;
-padding:20px;
-margin-bottom:20px;
-border-radius:10px;
 }
 
 .grid{
@@ -59,92 +54,80 @@ grid-template-columns:1fr 1fr;
 gap:20px;
 }
 
-table{
-width:100%;
-border-collapse:collapse;
-font-size:14px;
-}
-
-th,td{
-padding:8px;
-border-bottom:1px solid #333;
-}
-
-th{
-background:#1f1f1f;
-}
-
-canvas{
-background:#111;
-padding:10px;
+.card{
+background:#141414;
+padding:20px;
 border-radius:10px;
 }
 
-.loading{
-color:#aaa;
-margin-bottom:10px;
+canvas{
+background:#0f0f0f;
+border-radius:10px;
+padding:10px;
 }
 
-.alerta{
-color:#ff6b6b;
-font-weight:bold;
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:20px;
+}
+
+th,td{
+padding:10px;
+border-bottom:1px solid #333;
+text-align:left;
+}
+
+th{
+color:#ccc;
 }
 
 </style>
-
 </head>
 
 <body>
 
-<header>
-Radar Investigativo de Gastos Públicos
-</header>
+<header>Painel Investigativo de Gastos Públicos</header>
 
 <div class="container">
 
-<input id="busca" placeholder="Buscar deputado ou fornecedor">
-<button onclick="exportarCSV()">Exportar CSV</button>
+<div class="search">
+<input id="search" placeholder="Buscar deputado ou fornecedor">
+<button onclick="exportCSV()">Exportar CSV</button>
+</div>
 
-<div class="loading" id="status">Carregando dados...</div>
+<div id="count"></div>
 
 <div class="grid">
 
 <div class="card">
 <h3>Ranking de gastos</h3>
-<div id="ranking"></div>
+<ul id="ranking"></ul>
 </div>
 
 <div class="card">
 <h3>Ranking por partido</h3>
-<div id="partidos"></div>
+<ul id="partidos"></ul>
 </div>
-
-</div>
-
-<div class="grid">
 
 <div class="card">
 <h3>Fornecedores mais usados</h3>
-<div id="fornecedores"></div>
+<ul id="fornecedores"></ul>
 </div>
 
 <div class="card">
 <h3>CNPJs ligados a vários deputados</h3>
-<div id="cnpjs"></div>
-</div>
-
+<ul id="cnpj"></ul>
 </div>
 
 <div class="card">
 <h3>Pagamentos altos detectados</h3>
-<div id="alertas"></div>
+<ul id="altos"></ul>
 </div>
-
-<div class="grid">
 
 <div class="card">
 <h3>Distribuição de despesas</h3>
-<canvas id="graficoCategorias"></canvas>
+<canvas id="graficoDespesa"></canvas>
 </div>
 
 <div class="card">
@@ -154,11 +137,11 @@ Radar Investigativo de Gastos Públicos
 
 </div>
 
-<div class="card">
+<div class="card" style="margin-top:20px">
 
 <h3>Despesas</h3>
 
-<table>
+<table id="tabela">
 
 <thead>
 <tr>
@@ -171,7 +154,7 @@ Radar Investigativo de Gastos Públicos
 </tr>
 </thead>
 
-<tbody id="tabela"></tbody>
+<tbody></tbody>
 
 </table>
 
@@ -181,262 +164,277 @@ Radar Investigativo de Gastos Públicos
 
 <script>
 
-let graficoCategorias
-let graficoDeputados
-let dadosCSV=[]
+let dados = [
 
-async function buscarAno(ano){
-
-let pagina=1
-let dados=[]
-
-while(true){
-
-const url=`https://dadosabertos.camara.leg.br/api/v2/despesas?ano=${ano}&itens=100&pagina=${pagina}`
-
-try{
-
-const res=await fetch(url)
-const json=await res.json()
-
-dados=dados.concat(json.dados)
-
-if(json.dados.length<100) break
-
-pagina++
-
-}catch(e){
-
-break
-
-}
-
-}
-
-return dados
-
-}
-
-async function carregar(){
-
-const tabela=document.getElementById("tabela")
-const rankingDiv=document.getElementById("ranking")
-const fornecedoresDiv=document.getElementById("fornecedores")
-const cnpjDiv=document.getElementById("cnpjs")
-const partidosDiv=document.getElementById("partidos")
-const alertasDiv=document.getElementById("alertas")
-const status=document.getElementById("status")
-
-const deputados={}
-const fornecedores={}
-const categorias={}
-const cnpjs={}
-const partidos={}
-
-let totalGeral=0
-let todosDados=[]
-
-const anoAtual=new Date().getFullYear()
-
-for(let ano=2020;ano<=anoAtual;ano++){
-
-status.innerText=`Carregando dados de ${ano}...`
-
-const dadosAno=await buscarAno(ano)
-
-todosDados=todosDados.concat(dadosAno)
-
-}
-
-status.innerText=`${todosDados.length} registros carregados`
-
-todosDados.forEach(g=>{
-
-const valor=parseFloat(g.valorLiquido) || 0
-
-totalGeral+=valor
-
-dadosCSV.push([
-g.nomeDeputado,
-g.siglaPartido,
-g.tipoDespesa,
-valor,
-g.nomeFornecedor,
-g.dataDocumento
-])
-
-const linha=document.createElement("tr")
-
-linha.innerHTML=`
-<td>${g.nomeDeputado || "-"}</td>
-<td>${g.siglaPartido || "-"}</td>
-<td>${g.tipoDespesa || "-"}</td>
-<td>R$ ${valor.toLocaleString()}</td>
-<td>${g.nomeFornecedor || "-"}</td>
-<td>${g.dataDocumento || "-"}</td>
-`
-
-tabela.appendChild(linha)
-
-if(!deputados[g.nomeDeputado]) deputados[g.nomeDeputado]=0
-deputados[g.nomeDeputado]+=valor
-
-if(!fornecedores[g.nomeFornecedor]) fornecedores[g.nomeFornecedor]=0
-fornecedores[g.nomeFornecedor]++
-
-if(!categorias[g.tipoDespesa]) categorias[g.tipoDespesa]=0
-categorias[g.tipoDespesa]+=valor
-
-if(!partidos[g.siglaPartido]) partidos[g.siglaPartido]=0
-partidos[g.siglaPartido]+=valor
-
-const cnpj=g.cnpjCpfFornecedor || "desconhecido"
-
-if(!cnpjs[cnpj]) cnpjs[cnpj]=[]
-
-cnpjs[cnpj].push(g.nomeDeputado)
-
-if(valor>50000){
-
-alertasDiv.innerHTML+=`
-<p class="alerta">
-${g.nomeDeputado} pagou R$ ${valor.toLocaleString()} para ${g.nomeFornecedor}
-</p>
-`
-
-}
-
-})
-
-rankingDiv.innerHTML=`<p><b>Total analisado:</b> R$ ${Math.round(totalGeral).toLocaleString()}</p>`
-
-Object.entries(deputados)
-.sort((a,b)=>b[1]-a[1])
-.slice(0,10)
-.forEach(r=>{
-
-rankingDiv.innerHTML+=`
-<p>${r[0]} — R$ ${Math.round(r[1]).toLocaleString()}</p>
-`
-
-})
-
-Object.entries(partidos)
-.sort((a,b)=>b[1]-a[1])
-.slice(0,10)
-.forEach(p=>{
-
-partidosDiv.innerHTML+=`
-<p>${p[0]} — R$ ${Math.round(p[1]).toLocaleString()}</p>
-`
-
-})
-
-Object.entries(fornecedores)
-.sort((a,b)=>b[1]-a[1])
-.slice(0,10)
-.forEach(f=>{
-
-fornecedoresDiv.innerHTML+=`
-<p>${f[0]} — ${f[1]} pagamentos</p>
-`
-
-})
-
-Object.keys(cnpjs).forEach(c=>{
-
-const deps=[...new Set(cnpjs[c])]
-
-if(deps.length>6){
-
-cnpjDiv.innerHTML+=`
-<p>${c} — ligado a ${deps.length} deputados</p>
-`
-
-}
-
-})
-
-criarGraficos(deputados,categorias)
-
-}
-
-function criarGraficos(deputados,categorias){
-
-if(graficoCategorias) graficoCategorias.destroy()
-if(graficoDeputados) graficoDeputados.destroy()
-
-graficoCategorias=new Chart(
-document.getElementById("graficoCategorias"),
 {
+deputado:"João Silva",
+partido:"ABC",
+despesa:"Combustível",
+valor:5200,
+fornecedor:"Posto Brasil",
+data:"12/03/2024",
+cnpj:"11222333000100"
+},
+
+{
+deputado:"Maria Souza",
+partido:"XYZ",
+despesa:"Passagem aérea",
+valor:8200,
+fornecedor:"LATAM",
+data:"05/02/2024",
+cnpj:"22333444000100"
+},
+
+{
+deputado:"Carlos Lima",
+partido:"ABC",
+despesa:"Hotel",
+valor:12000,
+fornecedor:"Hotel Brasília",
+data:"20/01/2024",
+cnpj:"33444555000100"
+},
+
+{
+deputado:"João Silva",
+partido:"ABC",
+despesa:"Divulgação",
+valor:15000,
+fornecedor:"Agência Digital",
+data:"01/02/2024",
+cnpj:"44555666000100"
+},
+
+{
+deputado:"Maria Souza",
+partido:"XYZ",
+despesa:"Combustível",
+valor:4200,
+fornecedor:"Posto Brasil",
+data:"10/02/2024",
+cnpj:"11222333000100"
+}
+
+]
+
+function renderTabela(lista){
+
+let tbody = document.querySelector("#tabela tbody")
+
+tbody.innerHTML=""
+
+lista.forEach(d=>{
+
+let tr = document.createElement("tr")
+
+tr.innerHTML=`
+<td>${d.deputado}</td>
+<td>${d.partido}</td>
+<td>${d.despesa}</td>
+<td>R$ ${d.valor}</td>
+<td>${d.fornecedor}</td>
+<td>${d.data}</td>
+`
+
+tbody.appendChild(tr)
+
+})
+
+document.getElementById("count").innerText=lista.length+" registros carregados"
+
+}
+
+function rankingGastos(){
+
+let mapa={}
+
+dados.forEach(d=>{
+mapa[d.deputado]=(mapa[d.deputado]||0)+d.valor
+})
+
+let lista=Object.entries(mapa).sort((a,b)=>b[1]-a[1])
+
+let ul=document.getElementById("ranking")
+ul.innerHTML=""
+
+lista.forEach(r=>{
+let li=document.createElement("li")
+li.innerText=r[0]+" - R$ "+r[1]
+ul.appendChild(li)
+})
+
+}
+
+function rankingPartido(){
+
+let mapa={}
+
+dados.forEach(d=>{
+mapa[d.partido]=(mapa[d.partido]||0)+d.valor
+})
+
+let lista=Object.entries(mapa)
+
+let ul=document.getElementById("partidos")
+ul.innerHTML=""
+
+lista.forEach(r=>{
+let li=document.createElement("li")
+li.innerText=r[0]+" - R$ "+r[1]
+ul.appendChild(li)
+})
+
+}
+
+function fornecedores(){
+
+let mapa={}
+
+dados.forEach(d=>{
+mapa[d.fornecedor]=(mapa[d.fornecedor]||0)+1
+})
+
+let lista=Object.entries(mapa).sort((a,b)=>b[1]-a[1])
+
+let ul=document.getElementById("fornecedores")
+ul.innerHTML=""
+
+lista.forEach(r=>{
+let li=document.createElement("li")
+li.innerText=r[0]+" - "+r[1]+" pagamentos"
+ul.appendChild(li)
+})
+
+}
+
+function cnpjs(){
+
+let mapa={}
+
+dados.forEach(d=>{
+
+if(!mapa[d.cnpj]) mapa[d.cnpj]=new Set()
+
+mapa[d.cnpj].add(d.deputado)
+
+})
+
+let ul=document.getElementById("cnpj")
+ul.innerHTML=""
+
+for(let c in mapa){
+
+if(mapa[c].size>1){
+
+let li=document.createElement("li")
+li.innerText=c+" ligado a "+mapa[c].size+" deputados"
+ul.appendChild(li)
+
+}
+
+}
+
+}
+
+function pagamentosAltos(){
+
+let ul=document.getElementById("altos")
+ul.innerHTML=""
+
+dados.filter(d=>d.valor>10000).forEach(d=>{
+
+let li=document.createElement("li")
+
+li.innerText=d.deputado+" - "+d.despesa+" - R$ "+d.valor
+
+ul.appendChild(li)
+
+})
+
+}
+
+function graficoDespesas(){
+
+let mapa={}
+
+dados.forEach(d=>{
+mapa[d.despesa]=(mapa[d.despesa]||0)+d.valor
+})
+
+new Chart(document.getElementById("graficoDespesa"),{
+type:"pie",
+data:{
+labels:Object.keys(mapa),
+datasets:[{
+data:Object.values(mapa)
+}]
+}
+})
+
+}
+
+function graficoDeputados(){
+
+let mapa={}
+
+dados.forEach(d=>{
+mapa[d.deputado]=(mapa[d.deputado]||0)+d.valor
+})
+
+new Chart(document.getElementById("graficoDeputados"),{
 type:"bar",
 data:{
-labels:Object.keys(categorias),
+labels:Object.keys(mapa),
 datasets:[{
-data:Object.values(categorias),
-backgroundColor:"#c4170c"
+label:"Gastos",
+data:Object.values(mapa)
 }]
-},
-options:{plugins:{legend:{display:false}}}
-})
-
-const top=Object.entries(deputados)
-.sort((a,b)=>b[1]-a[1])
-.slice(0,10)
-
-graficoDeputados=new Chart(
-document.getElementById("graficoDeputados"),
-{
-type:"bar",
-data:{
-labels:top.map(d=>d[0]),
-datasets:[{
-data:top.map(d=>d[1]),
-backgroundColor:"#ff6b6b"
-}]
-},
-options:{plugins:{legend:{display:false}}}
+}
 })
 
 }
 
-function exportarCSV(){
+function exportCSV(){
 
 let csv="Deputado,Partido,Despesa,Valor,Fornecedor,Data\n"
 
-dadosCSV.forEach(l=>{
-
-csv+=l.join(",")+"\n"
-
+dados.forEach(d=>{
+csv+=`${d.deputado},${d.partido},${d.despesa},${d.valor},${d.fornecedor},${d.data}\n`
 })
 
-const blob=new Blob([csv],{type:"text/csv"})
+let blob=new Blob([csv])
 
-const link=document.createElement("a")
-
-link.href=URL.createObjectURL(blob)
-link.download="gastos_deputados.csv"
-
-link.click()
+let a=document.createElement("a")
+a.href=URL.createObjectURL(blob)
+a.download="gastos.csv"
+a.click()
 
 }
 
-carregar()
+document.getElementById("search").addEventListener("input",e=>{
 
-document.getElementById("busca").addEventListener("keyup",function(){
+let v=e.target.value.toLowerCase()
 
-const filtro=this.value.toLowerCase()
+let filtrado=dados.filter(d=>
 
-document.querySelectorAll("#tabela tr").forEach(linha=>{
+d.deputado.toLowerCase().includes(v) ||
+d.fornecedor.toLowerCase().includes(v)
 
-linha.style.display=
-linha.innerText.toLowerCase().includes(filtro)
-? ""
-: "none"
+)
 
-})
+renderTabela(filtrado)
 
 })
+
+renderTabela(dados)
+rankingGastos()
+rankingPartido()
+fornecedores()
+cnpjs()
+pagamentosAltos()
+graficoDespesas()
+graficoDeputados()
 
 </script>
 
