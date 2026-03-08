@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-br">
 
@@ -12,14 +13,14 @@
 
 body{
 margin:0;
-font-family:Arial;
+font-family:Arial, Helvetica, sans-serif;
 background:#0b0b0b;
 color:white;
 }
 
 header{
 background:#c4170c;
-padding:20px;
+padding:18px;
 font-size:26px;
 font-weight:bold;
 }
@@ -28,8 +29,9 @@ nav{
 background:#111;
 padding:12px;
 display:flex;
-gap:20px;
+gap:18px;
 flex-wrap:wrap;
+border-bottom:1px solid #222;
 }
 
 nav a{
@@ -44,7 +46,8 @@ color:#ff4444;
 }
 
 #conteudo{
-height:90vh;
+height:calc(100vh - 120px);
+overflow:auto;
 }
 
 iframe{
@@ -55,12 +58,24 @@ border:none;
 
 .feed{
 padding:20px;
+max-width:900px;
+margin:auto;
 }
 
 .item{
 margin-bottom:15px;
 border-left:3px solid red;
 padding-left:10px;
+font-size:15px;
+}
+
+.item a{
+color:#ff4444;
+text-decoration:none;
+}
+
+.item a:hover{
+text-decoration:underline;
 }
 
 </style>
@@ -76,17 +91,11 @@ padding-left:10px;
 <nav>
 
 <a onclick="radar()">✈️ Aviões</a>
-
 <a onclick="militares()">🛩 Aviões Militares</a>
-
 <a onclick="naviosMilitares()">🚢 Navios Militares</a>
-
 <a onclick="sat()">🛰 Satélites</a>
-
 <a onclick="conflitos()">🌍 Conflitos</a>
-
 <a onclick="foguetes()">🚀 Lançamentos</a>
-
 <a onclick="noticias()">📰 Notícias</a>
 
 </nav>
@@ -95,7 +104,7 @@ padding-left:10px;
 
 <div class="feed">
 <h2>Painel Global</h2>
-<p>Escolha uma ferramenta acima.</p>
+<p>Escolha uma ferramenta no menu acima.</p>
 </div>
 
 </div>
@@ -103,45 +112,38 @@ padding-left:10px;
 <script>
 
 function radar(){
-document.getElementById("conteudo").innerHTML=
+
+document.getElementById("conteudo").innerHTML =
 `<iframe src="https://globe.adsbexchange.com/"></iframe>`;
+
 }
 
 function militares(){
-document.getElementById("conteudo").innerHTML=
-`<iframe src="https://globe.adsbexchange.com/?mil"></iframe>`;
+
+document.getElementById("conteudo").innerHTML =
+`<iframe src="https://globe.adsbexchange.com/?military"></iframe>`;
+
 }
 
 function naviosMilitares(){
 
-document.getElementById("conteudo").innerHTML=`
-
-<div style="display:flex;flex-direction:column;height:100%">
-
-<div class="feed">
-<h2>🚢 Radar Naval Militar</h2>
-<p>Monitoramento de navios de guerra, porta-aviões e embarcações militares.</p>
-</div>
-
-<iframe
-src="https://www.marinetraffic.com/en/ais/embed/zoom:2/centery:20/centerx:0/maptype:4/shownames:true/shiptypes:8"
-style="flex:1;border:none">
-</iframe>
-
-</div>
-
-`;
+document.getElementById("conteudo").innerHTML =
+`<iframe src="https://www.vesselfinder.com/"></iframe>`;
 
 }
 
 function sat(){
-document.getElementById("conteudo").innerHTML=
+
+document.getElementById("conteudo").innerHTML =
 `<iframe src="https://satellitemap.space/"></iframe>`;
+
 }
 
 function conflitos(){
-document.getElementById("conteudo").innerHTML=
+
+document.getElementById("conteudo").innerHTML =
 `<iframe src="https://liveuamap.com/"></iframe>`;
+
 }
 
 async function foguetes(){
@@ -156,16 +158,16 @@ data.results.forEach(l => {
 
 html += `
 <div class="item">
-🚀 ${l.name}<br>
+🚀 <b>${l.name}</b><br>
 📅 ${l.net}
 </div>
 `;
 
 });
 
-html+="</div>";
+html += "</div>";
 
-document.getElementById("conteudo").innerHTML=html;
+document.getElementById("conteudo").innerHTML = html;
 
 }
 
@@ -173,26 +175,26 @@ async function noticias(){
 
 let url="https://api.rss2json.com/v1/api.json?rss_url=https://news.google.com/rss?hl=pt-BR&gl=BR&ceid=BR:pt";
 
-let res=await fetch(url);
+let res = await fetch(url);
 
-let data=await res.json();
+let data = await res.json();
 
 let html="<div class='feed'><h2>📰 Notícias em Português</h2>";
 
 data.items.slice(0,15).forEach(n => {
 
-html+=`
+html += `
 <div class="item">
 <b>${n.title}</b><br>
-<a href="${n.link}" target="_blank" style="color:#ff4444">Abrir notícia</a>
+<a href="${n.link}" target="_blank">Abrir notícia</a>
 </div>
 `;
 
 });
 
-html+="</div>";
+html += "</div>";
 
-document.getElementById("conteudo").innerHTML=html;
+document.getElementById("conteudo").innerHTML = html;
 
 }
 
