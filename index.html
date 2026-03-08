@@ -82,7 +82,7 @@ height:80px;
 object-fit:cover;
 }
 
-#mapaBases{
+#mapa{
 height:100%;
 }
 
@@ -105,19 +105,15 @@ height:100%;
 <nav>
 
 <a onclick="aviComercial()">✈️ Aviões Comerciais</a>
-
 <a onclick="aviMilitar()">🛩 Aviões Militares</a>
-
 <a onclick="aviTodos()">🛫 Todos Aviões</a>
-
 <a onclick="navios()">🚢 Navios</a>
-
 <a onclick="bases()">🪖 Bases Militares</a>
-
+<a onclick="portaAvioes()">🚢 Porta-Aviões</a>
+<a onclick="satelites()">🛰 Satélites</a>
+<a onclick="alertaNuclear()">☢ Alerta Nuclear</a>
 <a onclick="conflitos()">🌍 Conflitos</a>
-
 <a onclick="foguetes()">🚀 Lançamentos</a>
-
 <a onclick="noticias()">📰 Notícias</a>
 
 </nav>
@@ -128,15 +124,14 @@ height:100%;
 
 <h2>🌍 Centro de Monitoramento Global</h2>
 
-<p>Ferramentas disponíveis:</p>
-
 <ul>
 <li>✈️ Rastreamento de aviões</li>
 <li>🚢 Monitoramento naval</li>
 <li>🪖 Bases militares globais</li>
-<li>🌍 Conflitos mundiais</li>
-<li>🚀 Lançamentos espaciais</li>
-<li>📰 Notícias globais</li>
+<li>☢ alerta nuclear</li>
+<li>🛰 satélites militares</li>
+<li>🚀 lançamentos espaciais</li>
+<li>📰 notícias</li>
 </ul>
 
 </div>
@@ -150,42 +145,53 @@ height:100%;
 /* relógio */
 
 setInterval(()=>{
-let d = new Date();
-hora.innerText = d.toLocaleTimeString();
+hora.innerText = new Date().toLocaleTimeString();
 },1000);
 
 
 /* aviões */
 
 function aviComercial(){
-conteudo.innerHTML =
-`<iframe src="https://globe.adsbexchange.com/?filterType=1"></iframe>`;
+conteudo.innerHTML=`<iframe src="https://globe.adsbexchange.com/?filterType=1"></iframe>`;
 }
 
 function aviMilitar(){
-conteudo.innerHTML =
-`<iframe src="https://globe.adsbexchange.com/?mil"></iframe>`;
+conteudo.innerHTML=`<iframe src="https://globe.adsbexchange.com/?mil"></iframe>`;
 }
 
 function aviTodos(){
-conteudo.innerHTML =
-`<iframe src="https://globe.adsbexchange.com/"></iframe>`;
+conteudo.innerHTML=`<iframe src="https://globe.adsbexchange.com/"></iframe>`;
 }
 
 
 /* navios */
 
 function navios(){
-conteudo.innerHTML =
-`<iframe src="https://www.marinetraffic.com/en/ais/embed/zoom:2/centery:20/centerx:0/maptype:4/shownames:true"></iframe>`;
+conteudo.innerHTML=`<iframe src="https://www.marinetraffic.com/en/ais/embed/zoom:2/centery:20/centerx:0/maptype:4"></iframe>`;
 }
 
 
 /* conflitos */
 
 function conflitos(){
-conteudo.innerHTML =
-`<iframe src="https://liveuamap.com/"></iframe>`;
+conteudo.innerHTML=`<iframe src="https://liveuamap.com/"></iframe>`;
+}
+
+
+/* função base de mapa */
+
+function criarMapa(){
+
+conteudo.innerHTML=`<div id="mapa"></div>`;
+
+var map=L.map('mapa').setView([20,0],2);
+
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{
+attribution:'satélite'
+}).addTo(map);
+
+return map;
+
 }
 
 
@@ -193,95 +199,103 @@ conteudo.innerHTML =
 
 function bases(){
 
-conteudo.innerHTML = `<div id="mapaBases"></div>`;
+var map=criarMapa();
 
-setTimeout(()=>{
+var bases=[
 
-var map = L.map('mapaBases').setView([25,10],2);
+["🇺🇸 Nellis Air Force Base",36.236,-115.034],
+["🇺🇸 Naval Base San Diego",32.699,-117.189],
+["🇺🇸 Pearl Harbor",21.352,-157.948],
+["🇺🇸 Cape Canaveral",28.572,-80.648],
+["🇷🇺 Engels Air Base",53.306,50.211],
+["🇷🇺 Murmansk Submarine Base",69.076,33.423],
+["🇨🇳 Yulin Naval Base",19.614,110.952],
+["🇯🇵 Yokosuka Naval Base",35.281,139.667],
+["🇺🇸 Al Udeid Air Base",25.117,51.314],
+["🇧🇷 Base Aérea de São Paulo",-23.435,-46.473],
+["🇧🇷 Base Naval Rio",-22.906,-43.164]
 
-L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{
-attribution:'Satélite'
-}).addTo(map);
+];
 
+bases.forEach(b=>{
+L.marker([b[1],b[2]]).addTo(map).bindPopup(b[0]);
+});
 
-/* EUA */
-
-L.marker([36.236,-115.034]).addTo(map)
-.bindPopup("🇺🇸 Nellis Air Force Base");
-
-L.marker([36.946,-76.309]).addTo(map)
-.bindPopup("🇺🇸 Naval Station Norfolk");
-
-L.marker([32.699,-117.189]).addTo(map)
-.bindPopup("🇺🇸 Naval Base San Diego");
-
-L.marker([28.572,-80.648]).addTo(map)
-.bindPopup("🇺🇸 Cape Canaveral Space Force Base");
-
-L.marker([34.744,-120.572]).addTo(map)
-.bindPopup("🇺🇸 Vandenberg Space Force Base");
-
-L.marker([21.352,-157.948]).addTo(map)
-.bindPopup("🇺🇸 Pearl Harbor");
+}
 
 
-/* Rússia */
+/* porta aviões */
 
-L.marker([69.076,33.423]).addTo(map)
-.bindPopup("🇷🇺 Murmansk Submarine Base");
+function portaAvioes(){
 
-L.marker([53.306,50.211]).addTo(map)
-.bindPopup("🇷🇺 Engels Air Base");
+var map=criarMapa();
 
+var navios=[
 
-/* China */
+["🇺🇸 USS Gerald R Ford",25,-70],
+["🇺🇸 USS Nimitz",20,140],
+["🇺🇸 USS Ronald Reagan",15,120],
+["🇨🇳 Shandong",20,115],
+["🇨🇳 Liaoning",18,110],
+["🇬🇧 HMS Queen Elizabeth",50,-5]
 
-L.marker([19.614,110.952]).addTo(map)
-.bindPopup("🇨🇳 Yulin Naval Base");
+];
 
-L.marker([40.079,116.584]).addTo(map)
-.bindPopup("🇨🇳 Beijing Air Base");
+navios.forEach(n=>{
+L.marker([n[1],n[2]]).addTo(map).bindPopup("🚢 "+n[0]);
+});
 
-
-/* Japão */
-
-L.marker([35.281,139.667]).addTo(map)
-.bindPopup("🇯🇵 Yokosuka Naval Base");
-
-L.marker([26.356,127.767]).addTo(map)
-.bindPopup("🇺🇸 Kadena Air Base");
+}
 
 
-/* Oriente Médio */
+/* satélites */
 
-L.marker([24.248,54.547]).addTo(map)
-.bindPopup("🇺🇸 Al Dhafra Air Base");
+function satelites(){
 
-L.marker([25.117,51.314]).addTo(map)
-.bindPopup("🇺🇸 Al Udeid Air Base");
+var map=criarMapa();
+
+var sats=[
+
+["USA Military Satellite",0,-40],
+["Russia Recon Satellite",20,60],
+["China Spy Satellite",-10,110],
+["NATO Satellite",30,-20]
+
+];
+
+sats.forEach(s=>{
+L.marker([s[1],s[2]]).addTo(map).bindPopup("🛰 "+s[0]);
+});
+
+}
 
 
-/* Europa */
+/* alerta nuclear */
 
-L.marker([34.590,32.987]).addTo(map)
-.bindPopup("🇬🇧 RAF Akrotiri");
+function alertaNuclear(){
 
-L.marker([52.381,13.522]).addTo(map)
-.bindPopup("🇩🇪 NATO Command");
+var map=criarMapa();
 
+var nukes=[
 
-/* Brasil */
+["🇺🇸 Estados Unidos",47,-101],
+["🇷🇺 Rússia",55,60],
+["🇨🇳 China",40,100],
+["🇫🇷 França",48,2],
+["🇬🇧 Reino Unido",53,-2]
 
-L.marker([-23.435,-46.473]).addTo(map)
-.bindPopup("🇧🇷 Base Aérea de São Paulo");
+];
 
-L.marker([-22.906,-43.164]).addTo(map)
-.bindPopup("🇧🇷 Base Naval do Rio");
+nukes.forEach(n=>{
 
-L.marker([-2.373,-44.396]).addTo(map)
-.bindPopup("🇧🇷 Centro de Lançamento de Alcântara");
+L.circle([n[1],n[2]],{
 
-},100);
+color:'red',
+radius:600000
+
+}).addTo(map).bindPopup("☢ Arsenal nuclear: "+n[0]);
+
+});
 
 }
 
@@ -290,15 +304,15 @@ L.marker([-2.373,-44.396]).addTo(map)
 
 async function foguetes(){
 
-let res = await fetch("https://ll.thespacedevs.com/2.2.0/launch/upcoming/?limit=5");
+let res=await fetch("https://ll.thespacedevs.com/2.2.0/launch/upcoming/?limit=5");
 
-let data = await res.json();
+let data=await res.json();
 
-let html="<div class='feed'><h2>🚀 Lançamentos Espaciais</h2>";
+let html="<div class='feed'><h2>🚀 Lançamentos</h2>";
 
-data.results.forEach(l => {
+data.results.forEach(l=>{
 
-html += `
+html+=`
 <div style="margin-bottom:15px;border-left:3px solid red;padding-left:10px">
 🚀 ${l.name}<br>
 📅 ${l.net}
@@ -307,9 +321,9 @@ html += `
 
 });
 
-html += "</div>";
+html+="</div>";
 
-conteudo.innerHTML = html;
+conteudo.innerHTML=html;
 
 }
 
@@ -328,6 +342,7 @@ let html="<div class='feed'><h2>📰 Notícias</h2>";
 data.items.slice(0,12).forEach(n=>{
 
 html+=`
+
 <div class="news">
 
 <img src="${n.thumbnail || 'https://via.placeholder.com/120'}">
@@ -338,6 +353,7 @@ html+=`
 </div>
 
 </div>
+
 `;
 
 });
