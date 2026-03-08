@@ -2,20 +2,19 @@
 <html lang="pt-br">
 
 <head>
+
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Radar Investigativo de Gastos Públicos</title>
 
-<title>Portal Global de Monitoramento</title>
-
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 
 body{
 margin:0;
-background:#0a0a0a;
-color:white;
 font-family:Arial;
+background:#0b0b0b;
+color:white;
 }
 
 header{
@@ -25,33 +24,47 @@ font-size:28px;
 font-weight:bold;
 }
 
-#map{
-height:600px;
+.container{
+padding:20px;
 }
 
-.painel{
-padding:15px;
-background:#111;
-border-top:2px solid #c4170c;
-}
-
-.log{
-background:black;
-color:#00ff90;
+input{
 padding:10px;
-height:200px;
-overflow:auto;
-font-family:monospace;
-}
-
-button{
-background:#c4170c;
+width:320px;
+margin-bottom:20px;
+border-radius:6px;
 border:none;
-color:white;
-padding:10px;
-margin:5px;
-cursor:pointer;
 }
+
+.card{
+background:#161616;
+padding:20px;
+margin-bottom:20px;
+border-radius:10px;
+}
+
+.alerta{
+color:#ff4444;
+font-weight:bold;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+}
+
+th,td{
+padding:10px;
+border-bottom:1px solid #333;
+}
+
+th{
+background:#1f1f1f;
+}
+
+.risco-baixo{color:#00ff9c}
+.risco-medio{color:#ffcc00}
+.risco-alto{color:#ff4444;font-weight:bold}
 
 </style>
 
@@ -60,112 +73,243 @@ cursor:pointer;
 <body>
 
 <header>
-🌍 Centro Global de Monitoramento
+Radar Investigativo de Gastos 🇧🇷
 </header>
 
-<div id="map"></div>
+<div class="container">
 
-<div class="painel">
+<input id="busca" placeholder="Buscar deputado ou fornecedor">
 
-<button onclick="alertaNuclear()">☢ Alerta Nuclear</button>
-<button onclick="detectarPortaAvioes()">🚢 Detectar Porta-Aviões</button>
-<button onclick="ativarIA()">🤖 Ativar IA Investigadora</button>
+<div class="card">
+<h3>🚨 Alertas da IA Investigadora</h3>
+<div id="alertas"></div>
+</div>
 
-<h3>🤖 Log da IA</h3>
+<div class="card">
+<h3>🧠 Score de risco por deputado</h3>
+<div id="score"></div>
+</div>
 
-<div class="log" id="log"></div>
+<div class="card">
+<h3>🏆 Ranking de gastos</h3>
+<div id="ranking"></div>
+</div>
+
+<div class="card">
+<h3>🏢 Fornecedores com mais pagamentos</h3>
+<div id="fornecedores"></div>
+</div>
+
+<div class="card">
+<h3>💰 Total analisado</h3>
+<div id="total"></div>
+</div>
+
+<div class="card">
+<h3>📊 Distribuição de despesas</h3>
+<canvas id="grafico"></canvas>
+</div>
+
+<div class="card">
+
+<h3>📋 Gastos recentes</h3>
+
+<table>
+
+<thead>
+<tr>
+<th>Deputado</th>
+<th>Despesa</th>
+<th>Valor</th>
+<th>Fornecedor</th>
+<th>Data</th>
+</tr>
+</thead>
+
+<tbody id="tabela"></tbody>
+
+</table>
 
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</div>
 
 <script>
 
-var map = L.map('map').setView([20,0],2);
+let grafico
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-maxZoom:19
-}).addTo(map);
+async function carregar(){
 
-function log(texto){
+const url="https://dadosabertos.camara.leg.br/api/v2/despesas?itens=80&ordem=DESC&ordenarPor=dataDocumento"
 
-var logBox = document.getElementById("log");
+const res=await fetch(url)
+const json=await res.json()
 
-logBox.innerHTML += "> "+texto+"<br>";
+const dados=json.dados
 
-logBox.scrollTop = logBox.scrollHeight;
+const tabela=document.getElementById("tabela")
+const alertas=document.getElementById("alertas")
+const rankingDiv=document.getElementById("ranking")
+const fornecedoresDiv=document.getElementById("fornecedores")
+const scoreDiv=document.getElementById("score")
+const totalDiv=document.getElementById("total")
+
+tabela.innerHTML=""
+alertas.innerHTML=""
+rankingDiv.innerHTML=""
+fornecedoresDiv.innerHTML=""
+scoreDiv.innerHTML=""
+
+const fornecedores={}
+const deputados={}
+const categorias={}
+const risco={}
+
+let total=0
+
+dados.forEach(g=>{
+
+const valor=parseFloat(g.valorLiquido)
+
+total+=valor
+
+const linha=document.createElement("tr")
+
+linha.innerHTML=`
+<td>${g.nomeDeputado}</td>
+<td>${g.tipoDespesa}</td>
+<td>R$ ${valor.toLocaleString()}</td>
+<td>${g.nomeFornecedor}</td>
+<td>${g.dataDocumento}</td>
+`
+
+tabela.appendChild(linha)
+
+if(!fornecedores[g.nomeFornecedor]) fornecedores[g.nomeFornecedor]=0
+fornecedores[g.nomeFornecedor]++
+
+if(!deputados[g.nomeDeputado]) deputados[g.nomeDeputado]=0
+deputados[g.nomeDeputado]+=valor
+
+if(!risco[g.nomeDeputado]) risco[g.nomeDeputado]=0
+
+if(!categorias[g.tipoDespesa]) categorias[g.tipoDespesa]=0
+categorias[g.tipoDespesa]+=valor
+
+// regras da IA
+
+if(valor>10000) risco[g.nomeDeputado]+=2
+if(valor>20000) risco[g.nomeDeputado]+=4
+
+// nota próxima de 5000
+
+if(valor>4900 && valor<5100) risco[g.nomeDeputado]+=1
+
+})
+
+Object.keys(fornecedores).forEach(f=>{
+
+if(fornecedores[f]>6){
+
+alertas.innerHTML+=`
+<p class="alerta">
+⚠ fornecedor aparece muitas vezes: ${f}
+</p>
+`
 
 }
 
-function alertaNuclear(){
+})
 
-var locais = [
-[55,37],
-[40,-74],
-[35,139],
-[48,2]
-];
+Object.keys(risco).forEach(d=>{
 
-locais.forEach(function(l){
+let classe="risco-baixo"
+let texto="baixo"
 
-L.circle(l,{
-color:'red',
-radius:300000
-}).addTo(map);
+if(risco[d]>5){
+classe="risco-medio"
+texto="médio"
+}
 
-});
+if(risco[d]>10){
+classe="risco-alto"
+texto="alto"
+}
 
-log("ALERTA: atividade nuclear detectada (simulação)");
+scoreDiv.innerHTML+=`
+<p class="${classe}">
+${d} — risco ${texto} (score ${risco[d]})
+</p>
+`
+
+})
+
+const ranking=Object.entries(deputados)
+.sort((a,b)=>b[1]-a[1])
+.slice(0,5)
+
+ranking.forEach(r=>{
+
+rankingDiv.innerHTML+=`
+<p>${r[0]} — R$ ${Math.round(r[1]).toLocaleString()}</p>
+`
+
+})
+
+Object.keys(fornecedores)
+.sort((a,b)=>fornecedores[b]-fornecedores[a])
+.slice(0,5)
+.forEach(f=>{
+
+fornecedoresDiv.innerHTML+=`
+<p>${f} — ${fornecedores[f]} pagamentos</p>
+`
+
+})
+
+totalDiv.innerHTML="R$ "+Math.round(total).toLocaleString()
+
+const labels=Object.keys(categorias)
+const valores=Object.values(categorias)
+
+if(grafico) grafico.destroy()
+
+grafico=new Chart(
+document.getElementById("grafico"),
+{
+type:'bar',
+data:{
+labels:labels,
+datasets:[{
+label:"Total gasto",
+data:valores
+}]
+}
+})
 
 }
 
-function detectarPortaAvioes(){
+carregar()
 
-var navios = [
+setInterval(carregar,60000)
 
-[25,-70],
-[35,140],
-[20,60],
-[10,-40]
+document.getElementById("busca").addEventListener("keyup",function(){
 
-];
+const filtro=this.value.toLowerCase()
 
-navios.forEach(function(n){
+document.querySelectorAll("#tabela tr").forEach(linha=>{
 
-L.marker(n).addTo(map)
-.bindPopup("🚢 Porta-aviões detectado");
+linha.style.display=
+linha.innerText.toLowerCase().includes(filtro)
+? ""
+: "none"
 
-});
+})
 
-log("IA: porta-aviões detectados no oceano");
-
-}
-
-function ativarIA(){
-
-log("IA iniciada...");
-
-setTimeout(()=>{
-
-log("IA analisando eventos globais...");
-
-},2000);
-
-setTimeout(()=>{
-
-log("IA detectou aumento de atividade militar");
-
-},4000);
-
-setTimeout(()=>{
-
-log("IA recomendação: monitorar regiões estratégicas");
-
-},6000);
-
-}
+})
 
 </script>
 
 </body>
+
 </html>
