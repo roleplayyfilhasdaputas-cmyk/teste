@@ -36,7 +36,7 @@ input{
 padding:10px;
 border-radius:6px;
 border:none;
-width:250px;
+width:260px;
 }
 
 button{
@@ -92,8 +92,13 @@ color:#ccc;
 <div class="container">
 
 <div class="search">
-<input id="search" placeholder="Buscar deputado ou fornecedor">
+
+<input id="search" placeholder="Buscar deputado">
+
+<button onclick="buscarDeputado()">Buscar</button>
+
 <button onclick="exportCSV()">Exportar CSV</button>
+
 </div>
 
 <div id="count"></div>
@@ -103,21 +108,6 @@ color:#ccc;
 <div class="card">
 <h3>Ranking de gastos</h3>
 <ul id="ranking"></ul>
-</div>
-
-<div class="card">
-<h3>Ranking por partido</h3>
-<ul id="partidos"></ul>
-</div>
-
-<div class="card">
-<h3>Fornecedores mais usados</h3>
-<ul id="fornecedores"></ul>
-</div>
-
-<div class="card">
-<h3>CNPJs ligados a vários deputados</h3>
-<ul id="cnpj"></ul>
 </div>
 
 <div class="card">
@@ -131,8 +121,8 @@ color:#ccc;
 </div>
 
 <div class="card">
-<h3>Top deputados</h3>
-<canvas id="graficoDeputados"></canvas>
+<h3>Top gastos</h3>
+<canvas id="graficoValores"></canvas>
 </div>
 
 </div>
@@ -146,8 +136,7 @@ color:#ccc;
 <thead>
 <tr>
 <th>Deputado</th>
-<th>Partido</th>
-<th>Despesa</th>
+<th>Tipo</th>
 <th>Valor</th>
 <th>Fornecedor</th>
 <th>Data</th>
@@ -164,189 +153,116 @@ color:#ccc;
 
 <script>
 
-let dados = [
+let dados=[]
 
-{
-deputado:"João Silva",
-partido:"ABC",
-despesa:"Combustível",
-valor:5200,
-fornecedor:"Posto Brasil",
-data:"12/03/2024",
-cnpj:"11222333000100"
-},
+async function buscarDeputado(){
 
-{
-deputado:"Maria Souza",
-partido:"XYZ",
-despesa:"Passagem aérea",
-valor:8200,
-fornecedor:"LATAM",
-data:"05/02/2024",
-cnpj:"22333444000100"
-},
+let nome=document.getElementById("search").value
 
-{
-deputado:"Carlos Lima",
-partido:"ABC",
-despesa:"Hotel",
-valor:12000,
-fornecedor:"Hotel Brasília",
-data:"20/01/2024",
-cnpj:"33444555000100"
-},
+let res=await fetch("https://dadosabertos.camara.leg.br/api/v2/deputados?nome="+nome)
 
-{
-deputado:"João Silva",
-partido:"ABC",
-despesa:"Divulgação",
-valor:15000,
-fornecedor:"Agência Digital",
-data:"01/02/2024",
-cnpj:"44555666000100"
-},
+let json=await res.json()
 
-{
-deputado:"Maria Souza",
-partido:"XYZ",
-despesa:"Combustível",
-valor:4200,
-fornecedor:"Posto Brasil",
-data:"10/02/2024",
-cnpj:"11222333000100"
+if(!json.dados.length){
+alert("Deputado não encontrado")
+return
 }
 
-]
+let id=json.dados[0].id
 
-function renderTabela(lista){
+buscarDespesas(id,json.dados[0].nome)
 
-let tbody = document.querySelector("#tabela tbody")
+}
+
+async function buscarDespesas(id,nome){
+
+let res=await fetch("https://dadosabertos.camara.leg.br/api/v2/deputados/"+id+"/despesas?itens=100")
+
+let json=await res.json()
+
+dados=json.dados.map(d=>({
+
+deputado:nome,
+tipo:d.tipoDespesa,
+valor:d.valorLiquido,
+fornecedor:d.nomeFornecedor,
+data:d.dataDocumento
+
+}))
+
+renderTabela()
+ranking()
+pagamentosAltos()
+graficoDespesas()
+graficoValores()
+
+}
+
+function renderTabela(){
+
+let tbody=document.querySelector("#tabela tbody")
 
 tbody.innerHTML=""
 
-lista.forEach(d=>{
+dados.forEach(d=>{
 
-let tr = document.createElement("tr")
+let tr=document.createElement("tr")
 
 tr.innerHTML=`
+
 <td>${d.deputado}</td>
-<td>${d.partido}</td>
-<td>${d.despesa}</td>
+<td>${d.tipo}</td>
 <td>R$ ${d.valor}</td>
 <td>${d.fornecedor}</td>
 <td>${d.data}</td>
+
 `
 
 tbody.appendChild(tr)
 
 })
 
-document.getElementById("count").innerText=lista.length+" registros carregados"
+document.getElementById("count").innerText=dados.length+" registros carregados"
 
 }
 
-function rankingGastos(){
+function ranking(){
 
 let mapa={}
 
 dados.forEach(d=>{
-mapa[d.deputado]=(mapa[d.deputado]||0)+d.valor
+mapa[d.tipo]=(mapa[d.tipo]||0)+d.valor
 })
 
 let lista=Object.entries(mapa).sort((a,b)=>b[1]-a[1])
 
 let ul=document.getElementById("ranking")
+
 ul.innerHTML=""
 
 lista.forEach(r=>{
-let li=document.createElement("li")
-li.innerText=r[0]+" - R$ "+r[1]
-ul.appendChild(li)
-})
-
-}
-
-function rankingPartido(){
-
-let mapa={}
-
-dados.forEach(d=>{
-mapa[d.partido]=(mapa[d.partido]||0)+d.valor
-})
-
-let lista=Object.entries(mapa)
-
-let ul=document.getElementById("partidos")
-ul.innerHTML=""
-
-lista.forEach(r=>{
-let li=document.createElement("li")
-li.innerText=r[0]+" - R$ "+r[1]
-ul.appendChild(li)
-})
-
-}
-
-function fornecedores(){
-
-let mapa={}
-
-dados.forEach(d=>{
-mapa[d.fornecedor]=(mapa[d.fornecedor]||0)+1
-})
-
-let lista=Object.entries(mapa).sort((a,b)=>b[1]-a[1])
-
-let ul=document.getElementById("fornecedores")
-ul.innerHTML=""
-
-lista.forEach(r=>{
-let li=document.createElement("li")
-li.innerText=r[0]+" - "+r[1]+" pagamentos"
-ul.appendChild(li)
-})
-
-}
-
-function cnpjs(){
-
-let mapa={}
-
-dados.forEach(d=>{
-
-if(!mapa[d.cnpj]) mapa[d.cnpj]=new Set()
-
-mapa[d.cnpj].add(d.deputado)
-
-})
-
-let ul=document.getElementById("cnpj")
-ul.innerHTML=""
-
-for(let c in mapa){
-
-if(mapa[c].size>1){
 
 let li=document.createElement("li")
-li.innerText=c+" ligado a "+mapa[c].size+" deputados"
+
+li.innerText=r[0]+" - R$ "+Math.round(r[1])
+
 ul.appendChild(li)
 
-}
-
-}
+})
 
 }
 
 function pagamentosAltos(){
 
 let ul=document.getElementById("altos")
+
 ul.innerHTML=""
 
 dados.filter(d=>d.valor>10000).forEach(d=>{
 
 let li=document.createElement("li")
 
-li.innerText=d.deputado+" - "+d.despesa+" - R$ "+d.valor
+li.innerText=d.tipo+" - R$ "+d.valor
 
 ul.appendChild(li)
 
@@ -359,82 +275,75 @@ function graficoDespesas(){
 let mapa={}
 
 dados.forEach(d=>{
-mapa[d.despesa]=(mapa[d.despesa]||0)+d.valor
+mapa[d.tipo]=(mapa[d.tipo]||0)+d.valor
 })
 
 new Chart(document.getElementById("graficoDespesa"),{
+
 type:"pie",
+
 data:{
 labels:Object.keys(mapa),
+
 datasets:[{
+
 data:Object.values(mapa)
+
 }]
+
 }
+
 })
 
 }
 
-function graficoDeputados(){
+function graficoValores(){
 
-let mapa={}
+let top=dados
+.sort((a,b)=>b.valor-a.valor)
+.slice(0,5)
 
-dados.forEach(d=>{
-mapa[d.deputado]=(mapa[d.deputado]||0)+d.valor
-})
+new Chart(document.getElementById("graficoValores"),{
 
-new Chart(document.getElementById("graficoDeputados"),{
 type:"bar",
+
 data:{
-labels:Object.keys(mapa),
+
+labels:top.map(d=>d.tipo),
+
 datasets:[{
-label:"Gastos",
-data:Object.values(mapa)
+
+label:"Valor",
+
+data:top.map(d=>d.valor)
+
 }]
+
 }
+
 })
 
 }
 
 function exportCSV(){
 
-let csv="Deputado,Partido,Despesa,Valor,Fornecedor,Data\n"
+let csv="Deputado,Tipo,Valor,Fornecedor,Data\n"
 
 dados.forEach(d=>{
-csv+=`${d.deputado},${d.partido},${d.despesa},${d.valor},${d.fornecedor},${d.data}\n`
+csv+=`${d.deputado},${d.tipo},${d.valor},${d.fornecedor},${d.data}\n`
 })
 
 let blob=new Blob([csv])
 
 let a=document.createElement("a")
+
 a.href=URL.createObjectURL(blob)
-a.download="gastos.csv"
+
+a.download="gastos_deputado.csv"
+
 a.click()
 
 }
-
-document.getElementById("search").addEventListener("input",e=>{
-
-let v=e.target.value.toLowerCase()
-
-let filtrado=dados.filter(d=>
-
-d.deputado.toLowerCase().includes(v) ||
-d.fornecedor.toLowerCase().includes(v)
-
-)
-
-renderTabela(filtrado)
-
-})
-
-renderTabela(dados)
-rankingGastos()
-rankingPartido()
-fornecedores()
-cnpjs()
-pagamentosAltos()
-graficoDespesas()
-graficoDeputados()
 
 </script>
 
