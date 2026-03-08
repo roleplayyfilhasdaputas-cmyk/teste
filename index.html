@@ -46,6 +46,12 @@ body{
   margin-bottom:10px;
   border-radius:6px;
 }
+#contador{
+  margin-bottom:10px;
+  font-weight:bold;
+  text-align:center;
+  color:#ff5555;
+}
 </style>
 </head>
 <body>
@@ -58,6 +64,7 @@ body{
 <div id="alerta" class="alerta">
 ⚠ Possível helicóptero detectado
 </div>
+<div id="contador">Helicópteros ativos: 0</div>
 <h3>Detecções</h3>
 <div id="lista"></div>
 </div>
@@ -76,16 +83,14 @@ L.circle([centro.lat,centro.lon],{radius:raio*1000,color:"red",fill:false}).addT
 
 var trilhas = {};
 var markers = {};
-var bases = {}; // pontos de pouso/base
-var estacionados = {}; // conta atualizações parado
-
-// ícone de base / helicóptero pousado
+var bases = {};
+var estacionados = {};
 var iconeBase = L.icon({
-  iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png', // helicóptero pousado
+  iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
   iconSize: [30,30]
 });
 
-// carrega bases do LocalStorage
+// carrega bases
 if(localStorage.getItem("bases")){
   bases = JSON.parse(localStorage.getItem("bases"));
 }
@@ -100,40 +105,40 @@ function distancia(lat1,lon1,lat2,lon2){
   return R*c;
 }
 
-// detecta helicóptero
+// detectar helicóptero
 function detectarHelicoptero(vel,alt){
   if(!vel) return false;
   if(vel < 120 && alt < 3000) return true;
   return false;
 }
 
-// limpa marcadores antigos
+// limpar marcadores
 function limparMarcadores(){
   Object.values(markers).forEach(m=>map.removeLayer(m));
   markers = {};
 }
 
-// adiciona base/pouso
+// adicionar base/pouso com agrupamento
 function adicionarBase(lat,lon){
-  let key = lat.toFixed(5)+"_"+lon.toFixed(5);
+  let key = lat.toFixed(3)+"_"+lon.toFixed(3); // arredonda para agrupar próximos
   let agora = Date.now();
   let vinteDias = 20*24*60*60*1000;
-  if(!bases[key] || (agora - bases[key].timestamp) > vinteDias){
-    bases[key] = {lat:lat,lon:lon,timestamp:agora};
-    localStorage.setItem("bases",JSON.stringify(bases));
-    L.marker([lat,lon], {icon: iconeBase})
-      .addTo(map)
-      .bindPopup("BASE / Pouso (20 dias)").openPopup();
+  if(!bases[key]){
+    bases[key] = {lat:lat,lon:lon,timestamp:agora,count:1};
+  } else {
+    bases[key].count++;
+    bases[key].timestamp = agora;
   }
+  localStorage.setItem("bases",JSON.stringify(bases));
 }
 
-// desenha bases existentes
+// desenhar bases
 function desenharBases(){
   let agora = Date.now();
   Object.keys(bases).forEach(key=>{
     if((agora - bases[key].timestamp) <= 20*24*60*60*1000){
       L.marker([bases[key].lat,bases[key].lon], {icon: iconeBase})
-        .bindPopup("BASE / Pouso (20 dias)")
+        .bindPopup(`BASE / Pouso (20 dias) - ${bases[key].count} pouso(s)`)
         .addTo(map);
     }
   });
@@ -142,12 +147,13 @@ function desenharBases(){
 // radar principal
 async function radar(){
   limparMarcadores();
-
   let r = await fetch("https://opensky-network.org/api/states/all");
   let data = await r.json();
 
   document.getElementById("lista").innerHTML="";
   document.getElementById("alerta").style.display="none";
+
+  let countAtivos = 0;
 
   data.states.forEach(a=>{
     let id = a[0];
@@ -163,16 +169,18 @@ async function radar(){
       let helicoptero = detectarHelicoptero(vel,alt);
       if(!helicoptero) return;
 
-      // marcador helicóptero em voo
+      countAtivos++;
+
+      // marcador voo
       let marker = L.marker([lat,lon]).addTo(map).bindPopup(callsign);
       markers[id] = marker;
 
-      // trilha vermelha
+      // trilha
       if(!trilhas[id]) trilhas[id]=[];
       trilhas[id].push([lat,lon]);
       L.polyline(trilhas[id],{color:"red"}).addTo(map);
 
-      // alerta visual
+      // alerta
       document.getElementById("alerta").style.display="block";
 
       // painel lateral
@@ -185,10 +193,10 @@ async function radar(){
       document.getElementById("lista").innerHTML+=card;
 
       // detectar pouso
-      if(vel < 5){ // quase parado
+      if(vel < 5){
         if(!estacionados[id]) estacionados[id] = 1;
         else estacionados[id]++;
-        if(estacionados[id] >= 3){ // 3 atualizações = pouso
+        if(estacionados[id] >= 3){
           adicionarBase(lat,lon);
         }
       } else {
@@ -197,15 +205,16 @@ async function radar(){
     }
   });
 
-  // redesenha bases
+  // atualizar contador
+  document.getElementById("contador").innerText = `Helicópteros ativos: ${countAtivos}`;
+
+  // desenhar bases
   desenharBases();
 }
 
 // primeira execução
 radar();
-// atualiza a cada 20s
 setInterval(radar,20000);
-
 </script>
 </body>
 </html>
