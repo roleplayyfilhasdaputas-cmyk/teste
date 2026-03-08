@@ -79,13 +79,11 @@ padding-left:10px;
 
 <a onclick="militares()">🛩 Aviões Militares</a>
 
-<a onclick="navios()">🚢 Navios</a>
+<a onclick="naviosMilitares()">🚢 Navios Militares</a>
 
 <a onclick="sat()">🛰 Satélites</a>
 
 <a onclick="conflitos()">🌍 Conflitos</a>
-
-<a onclick="ciber()">💻 Ciberataques</a>
 
 <a onclick="foguetes()">🚀 Lançamentos</a>
 
@@ -110,18 +108,23 @@ document.getElementById("conteudo").innerHTML=
 }
 
 function militares(){
+document.getElementById("conteudo").innerHTML=
+`<iframe src="https://globe.adsbexchange.com/?mil"></iframe>`;
+}
+
+function naviosMilitares(){
 
 document.getElementById("conteudo").innerHTML=`
 
 <div style="display:flex;flex-direction:column;height:100%">
 
 <div class="feed">
-<h2>🛩 Radar Militar Global</h2>
-<p>Monitoramento de aviões militares, drones, helicópteros e aeronaves especiais.</p>
+<h2>🚢 Radar Naval Militar</h2>
+<p>Monitoramento de navios de guerra, porta-aviões e embarcações militares.</p>
 </div>
 
 <iframe
-src="https://globe.adsbexchange.com/?mil"
+src="https://www.marinetraffic.com/en/ais/embed/zoom:2/centery:20/centerx:0/maptype:4/shownames:true/shiptypes:8"
 style="flex:1;border:none">
 </iframe>
 
@@ -129,11 +132,6 @@ style="flex:1;border:none">
 
 `;
 
-}
-
-function navios(){
-document.getElementById("conteudo").innerHTML=
-`<iframe src="https://www.marinetraffic.com/en/ais/embed/zoom:2/centery:20/centerx:0/maptype:4/shownames:true"></iframe>`;
 }
 
 function sat(){
@@ -144,11 +142,6 @@ document.getElementById("conteudo").innerHTML=
 function conflitos(){
 document.getElementById("conteudo").innerHTML=
 `<iframe src="https://liveuamap.com/"></iframe>`;
-}
-
-function ciber(){
-document.getElementById("conteudo").innerHTML=
-`<iframe src="https://livethreatmap.radware.com/"></iframe>`;
 }
 
 async function foguetes(){
