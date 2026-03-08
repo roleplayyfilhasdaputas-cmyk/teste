@@ -1,3 +1,184 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+<meta charset="UTF-8">
+<title>Radar Investigativo de Gastos Públicos</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+body{
+margin:0;
+font-family:Arial;
+background:#0b0b0b;
+color:white;
+}
+
+header{
+background:#c4170c;
+padding:20px;
+font-size:28px;
+font-weight:bold;
+}
+
+.container{
+padding:20px;
+max-width:1400px;
+margin:auto;
+}
+
+input{
+padding:10px;
+width:300px;
+border-radius:6px;
+border:none;
+}
+
+button{
+padding:10px;
+border:none;
+border-radius:6px;
+background:#c4170c;
+color:white;
+cursor:pointer;
+margin-left:10px;
+}
+
+.card{
+background:#161616;
+padding:20px;
+margin-bottom:20px;
+border-radius:10px;
+}
+
+.grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:20px;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+font-size:14px;
+}
+
+th,td{
+padding:8px;
+border-bottom:1px solid #333;
+}
+
+th{
+background:#1f1f1f;
+}
+
+canvas{
+background:#111;
+padding:10px;
+border-radius:10px;
+}
+
+.loading{
+color:#aaa;
+margin-bottom:10px;
+}
+
+.alerta{
+color:#ff6b6b;
+font-weight:bold;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<header>
+Radar Investigativo de Gastos Públicos
+</header>
+
+<div class="container">
+
+<input id="busca" placeholder="Buscar deputado ou fornecedor">
+<button onclick="exportarCSV()">Exportar CSV</button>
+
+<div class="loading" id="status">Carregando dados...</div>
+
+<div class="grid">
+
+<div class="card">
+<h3>Ranking de gastos</h3>
+<div id="ranking"></div>
+</div>
+
+<div class="card">
+<h3>Ranking por partido</h3>
+<div id="partidos"></div>
+</div>
+
+</div>
+
+<div class="grid">
+
+<div class="card">
+<h3>Fornecedores mais usados</h3>
+<div id="fornecedores"></div>
+</div>
+
+<div class="card">
+<h3>CNPJs ligados a vários deputados</h3>
+<div id="cnpjs"></div>
+</div>
+
+</div>
+
+<div class="card">
+<h3>Pagamentos altos detectados</h3>
+<div id="alertas"></div>
+</div>
+
+<div class="grid">
+
+<div class="card">
+<h3>Distribuição de despesas</h3>
+<canvas id="graficoCategorias"></canvas>
+</div>
+
+<div class="card">
+<h3>Top deputados</h3>
+<canvas id="graficoDeputados"></canvas>
+</div>
+
+</div>
+
+<div class="card">
+
+<h3>Despesas</h3>
+
+<table>
+
+<thead>
+<tr>
+<th>Deputado</th>
+<th>Partido</th>
+<th>Despesa</th>
+<th>Valor</th>
+<th>Fornecedor</th>
+<th>Data</th>
+</tr>
+</thead>
+
+<tbody id="tabela"></tbody>
+
+</table>
+
+</div>
+
+</div>
+
 <script>
 
 let graficoCategorias
@@ -118,7 +299,7 @@ cnpjs[cnpj].push(g.nomeDeputado)
 if(valor>50000){
 
 alertasDiv.innerHTML+=`
-<p style="color:#ff6b6b">
+<p class="alerta">
 ${g.nomeDeputado} pagou R$ ${valor.toLocaleString()} para ${g.nomeFornecedor}
 </p>
 `
@@ -258,3 +439,6 @@ linha.innerText.toLowerCase().includes(filtro)
 })
 
 </script>
+
+</body>
+</html>
