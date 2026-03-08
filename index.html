@@ -93,13 +93,19 @@ tr:nth-child(odd){background:#100000;}
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-var centro={lat:-20.5386,lon:-47.4000};
+var centro={lat:-20.5386, lon:-47.4000};
 var raio=5;
+
 var map=L.map('map').setView([centro.lat,centro.lon],12);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
 L.circle([centro.lat,centro.lon],{radius:raio*1000,color:"red",fill:false}).addTo(map);
 
-var trilhas={}; var markers={}; var bases={}; var estacionados={}; var iconeBase=L.icon({iconUrl:'https://cdn-icons-png.flaticon.com/512/684/684908.png',iconSize:[30,30]});
+var trilhas={}; 
+var markers={}; 
+var bases={}; 
+var estacionados={}; 
+var iconeBase=L.icon({iconUrl:'https://cdn-icons-png.flaticon.com/512/684/684908.png',iconSize:[30,30]});
+
 if(localStorage.getItem("bases")) bases=JSON.parse(localStorage.getItem("bases"));
 
 function distancia(lat1,lon1,lat2,lon2){
@@ -109,7 +115,12 @@ function distancia(lat1,lon1,lat2,lon2){
   return R*c;
 }
 
-function detectarHelicoptero(vel,alt){ if(!vel) return false; if(vel<120 && alt<3000) return true; return false; }
+function detectarHelicoptero(vel,alt){
+  if(!vel) return false;
+  if(vel<120 && alt<3000) return true;
+  return false;
+}
+
 function limparMarcadores(){ Object.values(markers).forEach(m=>map.removeLayer(m)); markers={}; }
 
 function adicionarBase(lat,lon){
@@ -154,7 +165,7 @@ async function radar(){
       L.polyline(trilhas[id],{color:"red"}).addTo(map);
 
       // Previsão simples de rota
-      let futuroLat=lat + (vel/111111)*Math.cos(0); // simplificação
+      let futuroLat=lat + (vel/111111)*Math.cos(0); 
       let futuroLon=lon + (vel/111111)*Math.sin(0);
       L.polyline([[lat,lon],[futuroLat,futuroLon]],{color:"orange",dashArray:"5,10"}).addTo(map);
 
