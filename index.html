@@ -75,11 +75,11 @@ padding-left:10px;
 
 <nav>
 
-<a onclick="radar()">✈️ Radar Aviões</a>
+<a onclick="radar()">✈️ Aviões</a>
 
 <a onclick="militares()">🛩 Aviões Militares</a>
 
-<a onclick="navios()">🚢 Navios Militares</a>
+<a onclick="navios()">🚢 Navios</a>
 
 <a onclick="sat()">🛰 Satélites</a>
 
@@ -105,52 +105,63 @@ padding-left:10px;
 <script>
 
 function radar(){
-document.getElementById("conteudo").innerHTML=`
-<iframe src="https://globe.adsbexchange.com/"></iframe>
-`;
+document.getElementById("conteudo").innerHTML=
+`<iframe src="https://globe.adsbexchange.com/"></iframe>`;
 }
 
 function militares(){
+
 document.getElementById("conteudo").innerHTML=`
-<iframe src="https://globe.adsbexchange.com/?mil"></iframe>
+
+<div style="display:flex;flex-direction:column;height:100%">
+
+<div class="feed">
+<h2>🛩 Radar Militar Global</h2>
+<p>Monitoramento de aviões militares, drones, helicópteros e aeronaves especiais.</p>
+</div>
+
+<iframe
+src="https://globe.adsbexchange.com/?mil"
+style="flex:1;border:none">
+</iframe>
+
+</div>
+
 `;
+
 }
 
 function navios(){
-document.getElementById("conteudo").innerHTML=`
-<iframe src="https://www.cruisingearth.com/military-ship-tracker/"></iframe>
-`;
+document.getElementById("conteudo").innerHTML=
+`<iframe src="https://www.marinetraffic.com/en/ais/embed/zoom:2/centery:20/centerx:0/maptype:4/shownames:true"></iframe>`;
 }
 
 function sat(){
-document.getElementById("conteudo").innerHTML=`
-<iframe src="https://satellitemap.space/"></iframe>
-`;
+document.getElementById("conteudo").innerHTML=
+`<iframe src="https://satellitemap.space/"></iframe>`;
 }
 
 function conflitos(){
-document.getElementById("conteudo").innerHTML=`
-<iframe src="https://liveuamap.com/"></iframe>
-`;
+document.getElementById("conteudo").innerHTML=
+`<iframe src="https://liveuamap.com/"></iframe>`;
 }
 
 function ciber(){
-document.getElementById("conteudo").innerHTML=`
-<iframe src="https://livethreatmap.radware.com/"></iframe>
-`;
+document.getElementById("conteudo").innerHTML=
+`<iframe src="https://livethreatmap.radware.com/"></iframe>`;
 }
 
 async function foguetes(){
 
-let res=await fetch("https://ll.thespacedevs.com/2.2.0/launch/upcoming/?limit=5");
+let res = await fetch("https://ll.thespacedevs.com/2.2.0/launch/upcoming/?limit=5");
 
-let data=await res.json();
+let data = await res.json();
 
-let html="<div class='feed'><h2>🚀 Próximos Lançamentos</h2>";
+let html="<div class='feed'><h2>🚀 Lançamentos Espaciais</h2>";
 
-data.results.forEach(l=>{
+data.results.forEach(l => {
 
-html+=`
+html += `
 <div class="item">
 🚀 ${l.name}<br>
 📅 ${l.net}
@@ -167,19 +178,20 @@ document.getElementById("conteudo").innerHTML=html;
 
 async function noticias(){
 
-let url="https://api.rss2json.com/v1/api.json?rss_url=https://feeds.bbci.co.uk/news/world/rss.xml";
+let url="https://api.rss2json.com/v1/api.json?rss_url=https://news.google.com/rss?hl=pt-BR&gl=BR&ceid=BR:pt";
 
 let res=await fetch(url);
 
 let data=await res.json();
 
-let html="<div class='feed'><h2>📰 Notícias Globais</h2>";
+let html="<div class='feed'><h2>📰 Notícias em Português</h2>";
 
-data.items.slice(0,10).forEach(n=>{
+data.items.slice(0,15).forEach(n => {
 
 html+=`
 <div class="item">
-📰 ${n.title}
+<b>${n.title}</b><br>
+<a href="${n.link}" target="_blank" style="color:#ff4444">Abrir notícia</a>
 </div>
 `;
 
