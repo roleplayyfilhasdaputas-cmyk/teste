@@ -77,7 +77,13 @@ L.circle([centro.lat,centro.lon],{radius:raio*1000,color:"red",fill:false}).addT
 var trilhas = {};
 var markers = {};
 var bases = {}; // pontos de pouso/base
-var estacionados = {}; // conta quantas atualizações o helicóptero ficou parado
+var estacionados = {}; // conta atualizações parado
+
+// ícone de base / helicóptero pousado
+var iconeBase = L.icon({
+  iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png', // helicóptero pousado
+  iconSize: [30,30]
+});
 
 // carrega bases do LocalStorage
 if(localStorage.getItem("bases")){
@@ -115,7 +121,7 @@ function adicionarBase(lat,lon){
   if(!bases[key] || (agora - bases[key].timestamp) > vinteDias){
     bases[key] = {lat:lat,lon:lon,timestamp:agora};
     localStorage.setItem("bases",JSON.stringify(bases));
-    L.marker([lat,lon], {icon: L.icon({iconUrl:'https://cdn-icons-png.flaticon.com/512/684/684908.png',iconSize:[25,25]})})
+    L.marker([lat,lon], {icon: iconeBase})
       .addTo(map)
       .bindPopup("BASE / Pouso (20 dias)").openPopup();
   }
@@ -126,7 +132,7 @@ function desenharBases(){
   let agora = Date.now();
   Object.keys(bases).forEach(key=>{
     if((agora - bases[key].timestamp) <= 20*24*60*60*1000){
-      L.marker([bases[key].lat,bases[key].lon])
+      L.marker([bases[key].lat,bases[key].lon], {icon: iconeBase})
         .bindPopup("BASE / Pouso (20 dias)")
         .addTo(map);
     }
@@ -157,11 +163,11 @@ async function radar(){
       let helicoptero = detectarHelicoptero(vel,alt);
       if(!helicoptero) return;
 
-      // marcador helicóptero
+      // marcador helicóptero em voo
       let marker = L.marker([lat,lon]).addTo(map).bindPopup(callsign);
       markers[id] = marker;
 
-      // trilha
+      // trilha vermelha
       if(!trilhas[id]) trilhas[id]=[];
       trilhas[id].push([lat,lon]);
       L.polyline(trilhas[id],{color:"red"}).addTo(map);
