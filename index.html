@@ -4,7 +4,7 @@
 <head>
 
 <meta charset="UTF-8">
-<title>Painel Investigativo de Gastos Públicos</title>
+<title>Radar Investigativo de Gastos Públicos</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -122,6 +122,16 @@ border-radius:10px;
 </div>
 
 <div class="card">
+<h3>📊 Top deputados</h3>
+<canvas id="graficoDeputados"></canvas>
+</div>
+
+<div class="card">
+<h3>🕸 Conexões deputado → fornecedor</h3>
+<div id="conexoes"></div>
+</div>
+
+<div class="card">
 
 <h3>📋 Gastos recentes</h3>
 
@@ -149,10 +159,11 @@ border-radius:10px;
 
 let graficoCategorias
 let graficoTempo
+let graficoDeputados
 
 async function carregar(){
 
-const url="https://dadosabertos.camara.leg.br/api/v2/despesas?itens=100&ordem=DESC&ordenarPor=dataDocumento"
+const url="https://dadosabertos.camara.leg.br/api/v2/despesas?itens=150&ordem=DESC&ordenarPor=dataDocumento"
 
 const res=await fetch(url)
 const json=await res.json()
@@ -165,18 +176,21 @@ const rankingDiv=document.getElementById("ranking")
 const fornecedoresDiv=document.getElementById("fornecedores")
 const scoreDiv=document.getElementById("score")
 const totalDiv=document.getElementById("total")
+const conexoesDiv=document.getElementById("conexoes")
 
 tabela.innerHTML=""
 alertas.innerHTML=""
 rankingDiv.innerHTML=""
 fornecedoresDiv.innerHTML=""
 scoreDiv.innerHTML=""
+conexoesDiv.innerHTML=""
 
 const fornecedores={}
 const deputados={}
 const categorias={}
 const risco={}
 const tempo={}
+const conexoes={}
 
 let total=0
 
@@ -214,13 +228,32 @@ const dia=g.dataDocumento.split("T")[0]
 if(!tempo[dia]) tempo[dia]=0
 tempo[dia]+=valor
 
+// conexões
+
+if(!conexoes[g.nomeDeputado]) conexoes[g.nomeDeputado]={}
+if(!conexoes[g.nomeDeputado][g.nomeFornecedor]) conexoes[g.nomeDeputado][g.nomeFornecedor]=0
+
+conexoes[g.nomeDeputado][g.nomeFornecedor]++
+
 // regras IA
 
-if(valor>10000) risco[g.nomeDeputado]+=2
-if(valor>20000) risco[g.nomeDeputado]+=4
-if(valor>4900 && valor<5100) risco[g.nomeDeputado]+=1
+if(valor>10000){
+risco[g.nomeDeputado]+=2
+alertas.innerHTML+=`<p class="alerta">💰 gasto alto: ${g.nomeDeputado}</p>`
+}
+
+if(valor>20000){
+risco[g.nomeDeputado]+=4
+}
+
+if(valor>4900 && valor<5100){
+risco[g.nomeDeputado]+=1
+alertas.innerHTML+=`<p class="alerta">📄 valor perto de limite: ${g.nomeDeputado}</p>`
+}
 
 })
+
+// fornecedores repetidos
 
 Object.keys(fornecedores).forEach(f=>{
 
@@ -228,13 +261,15 @@ if(fornecedores[f]>6){
 
 alertas.innerHTML+=`
 <p class="alerta">
-⚠ fornecedor aparece muitas vezes: ${f}
+🏢 fornecedor muito usado: ${f}
 </p>
 `
 
 }
 
 })
+
+// score
 
 Object.keys(risco).forEach(d=>{
 
@@ -259,6 +294,8 @@ ${d} — risco ${texto} (score ${risco[d]})
 
 })
 
+// ranking
+
 const ranking=Object.entries(deputados)
 .sort((a,b)=>b[1]-a[1])
 .slice(0,5)
@@ -271,6 +308,8 @@ rankingDiv.innerHTML+=`
 
 })
 
+// fornecedores top
+
 Object.keys(fornecedores)
 .sort((a,b)=>fornecedores[b]-fornecedores[a])
 .slice(0,5)
@@ -279,6 +318,20 @@ Object.keys(fornecedores)
 fornecedoresDiv.innerHTML+=`
 <p>${f} — ${fornecedores[f]} pagamentos</p>
 `
+
+})
+
+// conexões
+
+Object.keys(conexoes).slice(0,5).forEach(dep=>{
+
+Object.keys(conexoes[dep]).slice(0,3).forEach(f=>{
+
+conexoesDiv.innerHTML+=`
+<p>${dep} → ${f} (${conexoes[dep][f]} pagamentos)</p>
+`
+
+})
 
 })
 
@@ -314,6 +367,23 @@ labels:Object.keys(tempo),
 datasets:[{
 label:"Gastos por dia",
 data:Object.values(tempo)
+}]
+}
+})
+
+// gráfico deputados
+
+if(graficoDeputados) graficoDeputados.destroy()
+
+graficoDeputados=new Chart(
+document.getElementById("graficoDeputados"),
+{
+type:'bar',
+data:{
+labels:ranking.map(r=>r[0]),
+datasets:[{
+label:"Top gastos",
+data:ranking.map(r=>r[1])
 }]
 }
 })
