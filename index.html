@@ -4,7 +4,7 @@
 <head>
 
 <meta charset="UTF-8">
-<title>Radar Investigativo de Gastos Públicos</title>
+<title>Painel Investigativo de Gastos Públicos</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -30,7 +30,7 @@ padding:20px;
 
 input{
 padding:10px;
-width:320px;
+width:350px;
 margin-bottom:20px;
 border-radius:6px;
 border:none;
@@ -66,6 +66,12 @@ background:#1f1f1f;
 .risco-medio{color:#ffcc00}
 .risco-alto{color:#ff4444;font-weight:bold}
 
+canvas{
+background:#111;
+padding:10px;
+border-radius:10px;
+}
+
 </style>
 
 </head>
@@ -73,7 +79,7 @@ background:#1f1f1f;
 <body>
 
 <header>
-Radar Investigativo de Gastos 🇧🇷
+🕵️ Radar Investigativo de Gastos 🇧🇷
 </header>
 
 <div class="container">
@@ -107,7 +113,12 @@ Radar Investigativo de Gastos 🇧🇷
 
 <div class="card">
 <h3>📊 Distribuição de despesas</h3>
-<canvas id="grafico"></canvas>
+<canvas id="graficoCategorias"></canvas>
+</div>
+
+<div class="card">
+<h3>📈 Evolução de gastos</h3>
+<canvas id="graficoTempo"></canvas>
 </div>
 
 <div class="card">
@@ -136,11 +147,12 @@ Radar Investigativo de Gastos 🇧🇷
 
 <script>
 
-let grafico
+let graficoCategorias
+let graficoTempo
 
 async function carregar(){
 
-const url="https://dadosabertos.camara.leg.br/api/v2/despesas?itens=80&ordem=DESC&ordenarPor=dataDocumento"
+const url="https://dadosabertos.camara.leg.br/api/v2/despesas?itens=100&ordem=DESC&ordenarPor=dataDocumento"
 
 const res=await fetch(url)
 const json=await res.json()
@@ -164,6 +176,7 @@ const fornecedores={}
 const deputados={}
 const categorias={}
 const risco={}
+const tempo={}
 
 let total=0
 
@@ -196,13 +209,15 @@ if(!risco[g.nomeDeputado]) risco[g.nomeDeputado]=0
 if(!categorias[g.tipoDespesa]) categorias[g.tipoDespesa]=0
 categorias[g.tipoDespesa]+=valor
 
-// regras da IA
+const dia=g.dataDocumento.split("T")[0]
+
+if(!tempo[dia]) tempo[dia]=0
+tempo[dia]+=valor
+
+// regras IA
 
 if(valor>10000) risco[g.nomeDeputado]+=2
 if(valor>20000) risco[g.nomeDeputado]+=4
-
-// nota próxima de 5000
-
 if(valor>4900 && valor<5100) risco[g.nomeDeputado]+=1
 
 })
@@ -269,20 +284,36 @@ fornecedoresDiv.innerHTML+=`
 
 totalDiv.innerHTML="R$ "+Math.round(total).toLocaleString()
 
-const labels=Object.keys(categorias)
-const valores=Object.values(categorias)
+// gráfico categorias
 
-if(grafico) grafico.destroy()
+if(graficoCategorias) graficoCategorias.destroy()
 
-grafico=new Chart(
-document.getElementById("grafico"),
+graficoCategorias=new Chart(
+document.getElementById("graficoCategorias"),
 {
 type:'bar',
 data:{
-labels:labels,
+labels:Object.keys(categorias),
 datasets:[{
 label:"Total gasto",
-data:valores
+data:Object.values(categorias)
+}]
+}
+})
+
+// gráfico tempo
+
+if(graficoTempo) graficoTempo.destroy()
+
+graficoTempo=new Chart(
+document.getElementById("graficoTempo"),
+{
+type:'line',
+data:{
+labels:Object.keys(tempo),
+datasets:[{
+label:"Gastos por dia",
+data:Object.values(tempo)
 }]
 }
 })
