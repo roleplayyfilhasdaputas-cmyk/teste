@@ -8,8 +8,6 @@
 
 <title>Portal do Biel</title>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-
 <style>
 
 body{
@@ -78,10 +76,6 @@ height:80px;
 object-fit:cover;
 }
 
-#mapa{
-height:100%;
-}
-
 </style>
 
 </head>
@@ -89,22 +83,31 @@ height:100%;
 <body>
 
 <header>
+
 🌍 PORTAL DO BIEL
-<div>🕒 <span id="hora"></span></div>
+
+<div>
+🕒 <span id="hora"></span>
+</div>
+
 </header>
 
 <nav>
 
 <a onclick="aviComercial()">✈️ Aviões Comerciais</a>
+
 <a onclick="aviMilitar()">🛩 Aviões Militares</a>
+
 <a onclick="aviTodos()">🛫 Todos Aviões</a>
+
 <a onclick="navios()">🚢 Navios</a>
-<a onclick="bases()">🪖 Bases Militares</a>
-<a onclick="portaAvioes()">🚢 Porta-Aviões</a>
-<a onclick="satelites()">🛰 Satélites Militares</a>
-<a onclick="alertaNuclear()">☢ Alerta Nuclear</a>
+
+<a onclick="missoes()">💥 Ataques 24h</a>
+
 <a onclick="conflitos()">🌍 Conflitos</a>
+
 <a onclick="foguetes()">🚀 Lançamentos</a>
+
 <a onclick="noticias()">📰 Notícias</a>
 
 </nav>
@@ -112,13 +115,21 @@ height:100%;
 <div id="conteudo">
 
 <div class="feed">
+
 <h2>🌍 Centro de Monitoramento Global</h2>
-<p>Ferramentas de monitoramento mundial.</p>
-</div>
+
+<ul>
+<li>✈️ Rastreamento de aviões</li>
+<li>🚢 Monitoramento naval</li>
+<li>💥 Ataques e explosões recentes</li>
+<li>🌍 Conflitos globais</li>
+<li>🚀 Lançamentos espaciais</li>
+<li>📰 Notícias internacionais</li>
+</ul>
 
 </div>
 
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+</div>
 
 <script>
 
@@ -151,6 +162,13 @@ conteudo.innerHTML=`<iframe src="https://www.marinetraffic.com/en/ais/embed/zoom
 }
 
 
+/* ataques e explosões */
+
+function missoes(){
+conteudo.innerHTML=`<iframe src="https://liveuamap.com/"></iframe>`;
+}
+
+
 /* conflitos */
 
 function conflitos(){
@@ -158,162 +176,25 @@ conteudo.innerHTML=`<iframe src="https://liveuamap.com/"></iframe>`;
 }
 
 
-/* função base mapa */
-
-function criarMapa(){
-
-conteudo.innerHTML=`<div id="mapa"></div>`;
-
-var map=L.map("mapa").setView([20,0],2);
-
-L.tileLayer(
-"https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-).addTo(map);
-
-return map;
-
-}
-
-
-/* bases militares */
-
-function bases(){
-
-var map=criarMapa();
-
-var basesPrincipais=[
-
-["Nellis Air Force Base",36.236,-115.034],
-["Naval Base San Diego",32.699,-117.189],
-["Pearl Harbor",21.352,-157.948],
-["Engels Air Base",53.306,50.211],
-["Yulin Naval Base",19.614,110.952],
-["Yokosuka Naval Base",35.281,139.667],
-["Base Aérea de São Paulo",-23.435,-46.473]
-
-];
-
-basesPrincipais.forEach(b=>{
-L.marker([b[1],b[2]]).addTo(map).bindPopup("🪖 "+b[0]);
-});
-
-
-/* +100 bases extras */
-
-for(let i=1;i<=100;i++){
-
-let lat=(Math.random()*140)-70;
-let lon=(Math.random()*360)-180;
-
-L.circleMarker([lat,lon],{
-radius:4,
-color:"yellow"
-})
-.addTo(map)
-.bindPopup("🪖 Base Militar "+i);
-
-}
-
-}
-
-
-/* porta aviões */
-
-function portaAvioes(){
-
-var map=criarMapa();
-
-var navios=[
-
-["USS Gerald R Ford",25,-70],
-["USS Nimitz",20,140],
-["USS Ronald Reagan",15,120],
-["Shandong",20,115],
-["Liaoning",18,110],
-["HMS Queen Elizabeth",50,-5]
-
-];
-
-navios.forEach(n=>{
-L.marker([n[1],n[2]])
-.addTo(map)
-.bindPopup("🚢 Porta-aviões: "+n[0]);
-});
-
-}
-
-
-/* satélites militares */
-
-function satelites(){
-
-var map=criarMapa();
-
-var sats=[
-
-["USA Military Recon Satellite",0,-40],
-["Russian Military Recon Satellite",20,60],
-["Chinese Military Spy Satellite",-10,110],
-["NATO Military Satellite",30,-20],
-["Early Warning Satellite",-5,20]
-
-];
-
-sats.forEach(s=>{
-L.marker([s[1],s[2]])
-.addTo(map)
-.bindPopup("🛰 Satélite Militar: "+s[0]);
-});
-
-}
-
-
-/* alerta nuclear */
-
-function alertaNuclear(){
-
-var map=criarMapa();
-
-var nukes=[
-
-["Estados Unidos",47,-101],
-["Rússia",55,60],
-["China",40,100],
-["França",48,2],
-["Reino Unido",53,-2]
-
-];
-
-nukes.forEach(n=>{
-
-L.circle([n[1],n[2]],{
-color:"red",
-radius:600000
-})
-.addTo(map)
-.bindPopup("☢ Arsenal nuclear: "+n[0]);
-
-});
-
-}
-
-
-/* lançamentos */
+/* lançamentos espaciais */
 
 async function foguetes(){
 
 let res=await fetch("https://ll.thespacedevs.com/2.2.0/launch/upcoming/?limit=5");
+
 let data=await res.json();
 
-let html="<div class='feed'><h2>🚀 Lançamentos</h2>";
+let html="<div class='feed'><h2>🚀 Lançamentos Espaciais</h2>";
 
 data.results.forEach(l=>{
+
 html+=`
 <div style="margin-bottom:15px;border-left:3px solid red;padding-left:10px">
 🚀 ${l.name}<br>
 📅 ${l.net}
 </div>
 `;
+
 });
 
 html+="</div>";
@@ -323,7 +204,7 @@ conteudo.innerHTML=html;
 }
 
 
-/* notícias */
+/* noticias */
 
 async function noticias(){
 
@@ -337,6 +218,7 @@ let html="<div class='feed'><h2>📰 Notícias</h2>";
 data.items.slice(0,12).forEach(n=>{
 
 html+=`
+
 <div class="news">
 
 <img src="${n.thumbnail || 'https://via.placeholder.com/120'}">
@@ -347,6 +229,7 @@ html+=`
 </div>
 
 </div>
+
 `;
 
 });
