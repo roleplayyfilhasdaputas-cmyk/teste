@@ -24,25 +24,33 @@ background:#c4170c;
 padding:20px;
 font-size:26px;
 font-weight:bold;
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+
+#hora{
+font-size:16px;
 }
 
 nav{
 background:#111;
 padding:12px;
 display:flex;
-gap:18px;
+gap:20px;
 flex-wrap:wrap;
+border-bottom:2px solid #c4170c;
 }
 
 nav a{
-color:white;
+color:#ddd;
 text-decoration:none;
 font-weight:bold;
 cursor:pointer;
 }
 
 nav a:hover{
-color:#ff4444;
+color:#ff3333;
 }
 
 #conteudo{
@@ -61,10 +69,11 @@ padding:20px;
 
 .news{
 display:flex;
-gap:10px;
-margin-bottom:15px;
-border-left:3px solid red;
-padding-left:10px;
+gap:15px;
+margin-bottom:20px;
+background:#111;
+padding:10px;
+border-radius:6px;
 }
 
 .news img{
@@ -84,7 +93,13 @@ height:100%;
 <body>
 
 <header>
+
 🌍 PORTAL DO BIEL
+
+<div>
+🕒 <span id="hora"></span>
+</div>
+
 </header>
 
 <nav>
@@ -95,7 +110,7 @@ height:100%;
 
 <a onclick="aviTodos()">🛫 Todos Aviões</a>
 
-<a onclick="navios()">🚢 Navios / Porta-aviões</a>
+<a onclick="navios()">🚢 Navios</a>
 
 <a onclick="bases()">🪖 Bases Militares</a>
 
@@ -110,8 +125,20 @@ height:100%;
 <div id="conteudo">
 
 <div class="feed">
-<h2>Painel Global</h2>
-<p>Escolha uma ferramenta acima.</p>
+
+<h2>🌍 Centro de Monitoramento Global</h2>
+
+<p>Ferramentas disponíveis:</p>
+
+<ul>
+<li>✈️ Rastreamento de aviões</li>
+<li>🚢 Monitoramento naval</li>
+<li>🪖 Bases militares globais</li>
+<li>🌍 Conflitos mundiais</li>
+<li>🚀 Lançamentos espaciais</li>
+<li>📰 Notícias globais</li>
+</ul>
+
 </div>
 
 </div>
@@ -119,6 +146,16 @@ height:100%;
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
+
+/* relógio */
+
+setInterval(()=>{
+let d = new Date();
+hora.innerText = d.toLocaleTimeString();
+},1000);
+
+
+/* aviões */
 
 function aviComercial(){
 conteudo.innerHTML =
@@ -135,15 +172,24 @@ conteudo.innerHTML =
 `<iframe src="https://globe.adsbexchange.com/"></iframe>`;
 }
 
+
+/* navios */
+
 function navios(){
 conteudo.innerHTML =
-`<iframe src="https://www.marinetraffic.com/en/ais/embed/zoom:2/centery:20/centerx:0/maptype:4/shownames:true/shiptypes:8"></iframe>`;
+`<iframe src="https://www.marinetraffic.com/en/ais/embed/zoom:2/centery:20/centerx:0/maptype:4/shownames:true"></iframe>`;
 }
+
+
+/* conflitos */
 
 function conflitos(){
 conteudo.innerHTML =
 `<iframe src="https://liveuamap.com/"></iframe>`;
 }
+
+
+/* bases militares */
 
 function bases(){
 
@@ -151,28 +197,96 @@ conteudo.innerHTML = `<div id="mapaBases"></div>`;
 
 setTimeout(()=>{
 
-var map = L.map('mapaBases').setView([30,0],2);
+var map = L.map('mapaBases').setView([25,10],2);
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{
+attribution:'Satélite'
+}).addTo(map);
 
-L.marker([36.0,-115.0]).addTo(map)
-.bindPopup("🇺🇸 Base Nellis (EUA)");
 
-L.marker([34.7,33.0]).addTo(map)
-.bindPopup("🇬🇧 Base Akrotiri (Reino Unido)");
+/* EUA */
 
-L.marker([35.4,139.4]).addTo(map)
-.bindPopup("🇯🇵 Base Yokosuka (Japão)");
+L.marker([36.236,-115.034]).addTo(map)
+.bindPopup("🇺🇸 Nellis Air Force Base");
 
-L.marker([25.2,55.3]).addTo(map)
-.bindPopup("🇺🇸 Base Al Dhafra (EAU)");
+L.marker([36.946,-76.309]).addTo(map)
+.bindPopup("🇺🇸 Naval Station Norfolk");
 
-L.marker([52.3,13.5]).addTo(map)
-.bindPopup("🇩🇪 Base OTAN Alemanha");
+L.marker([32.699,-117.189]).addTo(map)
+.bindPopup("🇺🇸 Naval Base San Diego");
+
+L.marker([28.572,-80.648]).addTo(map)
+.bindPopup("🇺🇸 Cape Canaveral Space Force Base");
+
+L.marker([34.744,-120.572]).addTo(map)
+.bindPopup("🇺🇸 Vandenberg Space Force Base");
+
+L.marker([21.352,-157.948]).addTo(map)
+.bindPopup("🇺🇸 Pearl Harbor");
+
+
+/* Rússia */
+
+L.marker([69.076,33.423]).addTo(map)
+.bindPopup("🇷🇺 Murmansk Submarine Base");
+
+L.marker([53.306,50.211]).addTo(map)
+.bindPopup("🇷🇺 Engels Air Base");
+
+
+/* China */
+
+L.marker([19.614,110.952]).addTo(map)
+.bindPopup("🇨🇳 Yulin Naval Base");
+
+L.marker([40.079,116.584]).addTo(map)
+.bindPopup("🇨🇳 Beijing Air Base");
+
+
+/* Japão */
+
+L.marker([35.281,139.667]).addTo(map)
+.bindPopup("🇯🇵 Yokosuka Naval Base");
+
+L.marker([26.356,127.767]).addTo(map)
+.bindPopup("🇺🇸 Kadena Air Base");
+
+
+/* Oriente Médio */
+
+L.marker([24.248,54.547]).addTo(map)
+.bindPopup("🇺🇸 Al Dhafra Air Base");
+
+L.marker([25.117,51.314]).addTo(map)
+.bindPopup("🇺🇸 Al Udeid Air Base");
+
+
+/* Europa */
+
+L.marker([34.590,32.987]).addTo(map)
+.bindPopup("🇬🇧 RAF Akrotiri");
+
+L.marker([52.381,13.522]).addTo(map)
+.bindPopup("🇩🇪 NATO Command");
+
+
+/* Brasil */
+
+L.marker([-23.435,-46.473]).addTo(map)
+.bindPopup("🇧🇷 Base Aérea de São Paulo");
+
+L.marker([-22.906,-43.164]).addTo(map)
+.bindPopup("🇧🇷 Base Naval do Rio");
+
+L.marker([-2.373,-44.396]).addTo(map)
+.bindPopup("🇧🇷 Centro de Lançamento de Alcântara");
 
 },100);
 
 }
+
+
+/* lançamentos espaciais */
 
 async function foguetes(){
 
@@ -198,6 +312,9 @@ html += "</div>";
 conteudo.innerHTML = html;
 
 }
+
+
+/* noticias */
 
 async function noticias(){
 
