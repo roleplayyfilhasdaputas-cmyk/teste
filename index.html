@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Radar IA Helicópteros - Franca</title>
+<title>Painel de Controle - Radar Helicópteros</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
 /* Global */
@@ -16,7 +16,7 @@ body{
 /* Top bar */
 #topbar{
   background:#0f172a;
-  padding:12px 20px;
+  padding:14px 20px;
   font-size:22px;
   font-weight:bold;
   letter-spacing:1px;
@@ -35,7 +35,7 @@ body{
   height:100%;
 }
 
-/* Painel lateral */
+/* Painel lateral estilo central de controle */
 #painel{
   flex:1;
   background:#111827;
@@ -54,12 +54,12 @@ body{
   display:none;
   font-weight:bold;
   text-align:center;
-  border-radius:8px;
+  border-radius:6px;
   box-shadow:0 2px 6px rgba(0,0,0,0.5);
   animation: pulse 1.5s infinite;
 }
 
-/* Contador helicópteros */
+/* Contador helicópteros ativos */
 #contador{
   margin-bottom:15px;
   font-weight:bold;
@@ -68,45 +68,47 @@ body{
   font-size:20px;
   background:#1f2937;
   padding:12px;
-  border-radius:8px;
+  border-radius:6px;
   box-shadow:0 2px 5px rgba(0,0,0,0.4);
 }
 
-/* Lista de detecções */
+/* Tabela de detecções estilo painel */
 #lista{
   flex:1;
   overflow-y:auto;
-  padding-right:5px;
+  border-top:2px solid #1f2937;
+  margin-top:10px;
 }
-
-/* Cards */
-.card{
-  background:#1f2937;
-  padding:14px;
-  margin-bottom:12px;
-  border-radius:10px;
-  box-shadow:0 2px 6px rgba(0,0,0,0.5);
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  transition: transform 0.2s;
+table{
+  width:100%;
+  border-collapse:collapse;
 }
-.card:hover{
-  transform: translateY(-2px);
-  box-shadow:0 4px 12px rgba(0,0,0,0.6);
-}
-.card b{
-  color:#ff5555;
-  font-size:16px;
-}
-
-/* Section titles */
-h3{
-  margin-bottom:10px;
+th, td{
+  padding:8px;
+  text-align:left;
+  font-size:14px;
   border-bottom:1px solid #1f2937;
-  padding-bottom:5px;
-  color:#ccc;
+}
+th{
+  color:#ff5555;
   font-weight:600;
+}
+tr:nth-child(even){background:#1a1c2a;}
+tr:nth-child(odd){background:#111827;}
+
+/* Barra de velocidade/altitude */
+.progress-bar{
+  display:inline-block;
+  height:8px;
+  background:#ff5555;
+  border-radius:4px;
+}
+.progress-container{
+  background:#1f2937;
+  border-radius:4px;
+  width:100px;
+  display:inline-block;
+  vertical-align:middle;
 }
 
 /* Pulse animation para alerta */
@@ -118,16 +120,26 @@ h3{
 </style>
 </head>
 <body>
-<div id="topbar">
-🚁 Radar IA Helicópteros — Franca
-</div>
+<div id="topbar">🚁 Painel de Controle - Radar Helicópteros</div>
 <div id="container">
 <div id="map"></div>
 <div id="painel">
-<div id="alerta">⚠ Possível helicóptero detectado</div>
+<div id="alerta">⚠ Helicóptero detectado!</div>
 <div id="contador">Helicópteros ativos: 0</div>
 <h3>Detecções Recentes</h3>
-<div id="lista"></div>
+<div id="lista">
+<table>
+<thead>
+<tr>
+<th>Callsign</th>
+<th>Alt (m)</th>
+<th>Vel (m/s)</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody id="tabela-deteccoes"></tbody>
+</table>
+</div>
 </div>
 </div>
 
@@ -146,15 +158,11 @@ var trilhas = {};
 var markers = {};
 var bases = {};
 var estacionados = {};
-var iconeBase = L.icon({
-  iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
-  iconSize: [30,30]
-});
+var iconeBase = L.icon({iconUrl:'https://cdn-icons-png.flaticon.com/512/684/684908.png',iconSize:[30,30]});
 
 // Carrega bases
 if(localStorage.getItem("bases")) bases = JSON.parse(localStorage.getItem("bases"));
 
-// Função distância
 function distancia(lat1,lon1,lat2,lon2){
   var R=6371;
   var dLat=(lat2-lat1)*Math.PI/180;
@@ -164,74 +172,53 @@ function distancia(lat1,lon1,lat2,lon2){
   return R*c;
 }
 
-// Detectar helicóptero
 function detectarHelicoptero(vel,alt){
   if(!vel) return false;
   if(vel < 120 && alt < 3000) return true;
   return false;
 }
 
-// Limpar marcadores
-function limparMarcadores(){
-  Object.values(markers).forEach(m=>map.removeLayer(m));
-  markers = {};
-}
+function limparMarcadores(){ Object.values(markers).forEach(m=>map.removeLayer(m)); markers={}; }
 
-// Adicionar base/pouso com agrupamento
 function adicionarBase(lat,lon){
   let key = lat.toFixed(3)+"_"+lon.toFixed(3);
   let agora = Date.now();
-  let vinteDias = 20*24*60*60*1000;
-  if(!bases[key]){
-    bases[key] = {lat:lat,lon:lon,timestamp:agora,count:1};
-  } else {
-    bases[key].count++;
-    bases[key].timestamp = agora;
-  }
+  if(!bases[key]){ bases[key]={lat:lat,lon:lon,timestamp:agora,count:1}; }
+  else{ bases[key].count++; bases[key].timestamp=agora; }
   localStorage.setItem("bases",JSON.stringify(bases));
 }
 
-// Desenhar bases
 function desenharBases(){
-  let agora = Date.now();
+  let agora=Date.now();
   Object.keys(bases).forEach(key=>{
-    if((agora - bases[key].timestamp) <= 20*24*60*60*1000){
-      L.marker([bases[key].lat,bases[key].lon], {icon: iconeBase})
+    if((agora-bases[key].timestamp)<=20*24*60*60*1000){
+      L.marker([bases[key].lat,bases[key].lon],{icon:iconeBase})
         .bindPopup(`BASE / Pouso (20 dias) - ${bases[key].count} pouso(s)`)
         .addTo(map);
     }
   });
 }
 
-// Radar principal
 async function radar(){
   limparMarcadores();
   let r = await fetch("https://opensky-network.org/api/states/all");
   let data = await r.json();
 
-  document.getElementById("lista").innerHTML="";
+  document.getElementById("tabela-deteccoes").innerHTML="";
   document.getElementById("alerta").style.display="none";
 
-  let countAtivos = 0;
+  let countAtivos=0;
 
   data.states.forEach(a=>{
-    let id = a[0];
-    let callsign = a[1];
-    let lon = a[5];
-    let lat = a[6];
-    let alt = a[7];
-    let vel = a[9];
-    if(!lat || !lon) return;
-
-    let dist = distancia(centro.lat, centro.lon, lat, lon);
-    if(dist < raio){
-      let helicoptero = detectarHelicoptero(vel,alt);
-      if(!helicoptero) return;
+    let id=a[0],callsign=a[1],lon=a[5],lat=a[6],alt=a[7],vel=a[9];
+    if(!lat||!lon) return;
+    if(distancia(centro.lat,centro.lon,lat,lon)<raio){
+      if(!detectarHelicoptero(vel,alt)) return;
 
       countAtivos++;
 
-      let marker = L.marker([lat,lon]).addTo(map).bindPopup(callsign);
-      markers[id] = marker;
+      let marker=L.marker([lat,lon]).addTo(map).bindPopup(callsign);
+      markers[id]=marker;
 
       if(!trilhas[id]) trilhas[id]=[];
       trilhas[id].push([lat,lon]);
@@ -239,23 +226,34 @@ async function radar(){
 
       document.getElementById("alerta").style.display="block";
 
-      let card = `<div class="card">
-        <b>🚁 ${callsign}</b>
-        <span>Alt: ${alt} m | Vel: ${vel} m/s</span>
-      </div>`;
-      document.getElementById("lista").innerHTML+=card;
+      // Tabela de detecções estilo painel
+      let status = vel<5?"Pousado":"Em voo";
+      let velBar=Math.min(vel/120*100,100);
+      let altBar=Math.min(alt/3000*100,100);
+      let row = `<tr>
+        <td>${callsign}</td>
+        <td>
+          ${alt}
+          <div class="progress-container"><div class="progress-bar" style="width:${altBar}px"></div></div>
+        </td>
+        <td>
+          ${vel}
+          <div class="progress-container"><div class="progress-bar" style="width:${velBar}px"></div></div>
+        </td>
+        <td>${status}</td>
+      </tr>`;
+      document.getElementById("tabela-deteccoes").innerHTML+=row;
 
-      if(vel < 5){
-        if(!estacionados[id]) estacionados[id] = 1;
+      // Base
+      if(vel<5){
+        if(!estacionados[id]) estacionados[id]=1;
         else estacionados[id]++;
-        if(estacionados[id] >= 3){
-          adicionarBase(lat,lon);
-        }
-      } else estacionados[id] = 0;
+        if(estacionados[id]>=3) adicionarBase(lat,lon);
+      } else estacionados[id]=0;
     }
   });
 
-  document.getElementById("contador").innerText = `Helicópteros ativos: ${countAtivos}`;
+  document.getElementById("contador").innerText=`Helicópteros ativos: ${countAtivos}`;
 
   desenharBases();
 }
