@@ -2,9 +2,13 @@
 <html lang="pt-br">
 
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+
 <title>Portal do Biel</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
 <style>
 
@@ -61,7 +65,12 @@ border-left:3px solid red;
 padding-left:10px;
 }
 
+#mapaNuclear{
+height:100%;
+}
+
 </style>
+
 </head>
 
 <body>
@@ -82,6 +91,8 @@ padding-left:10px;
 
 <a onclick="explosoes()">☢ Alertas Satélite</a>
 
+<a onclick="nuclear()">☢ Bombas Atômicas</a>
+
 <a onclick="conflitos()">🌍 Conflitos</a>
 
 <a onclick="foguetes()">🚀 Lançamentos</a>
@@ -91,11 +102,15 @@ padding-left:10px;
 </nav>
 
 <div id="conteudo">
+
 <div class="feed">
 <h2>Painel Global</h2>
 <p>Escolha uma ferramenta acima.</p>
 </div>
+
 </div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
 
@@ -120,21 +135,41 @@ document.getElementById("conteudo").innerHTML=
 }
 
 function explosoes(){
+document.getElementById("conteudo").innerHTML=
+`<iframe src="https://firms.modaps.eosdis.nasa.gov/map/#d:24hrs;@0.0,0.0,2z"></iframe>`;
+}
 
-document.getElementById("conteudo").innerHTML=`
+function nuclear(){
 
-<div style="display:flex;flex-direction:column;height:100%">
+document.getElementById("conteudo").innerHTML=`<div id="mapaNuclear"></div>`;
 
-<div class="feed">
-<h2>☢ Detecção de Calor por Satélite</h2>
-<p>Pontos de calor detectados por satélites da NASA (incêndios, explosões e eventos térmicos).</p>
-</div>
+setTimeout(()=>{
 
-<iframe src="https://firms.modaps.eosdis.nasa.gov/map/#d:24hrs;@0.0,0.0,2z"></iframe>
+var map = L.map('mapaNuclear').setView([20,0],2);
 
-</div>
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+attribution:'Mapa'
+}).addTo(map);
 
-`;
+L.marker([38.9,-77]).addTo(map)
+.bindPopup("☢ Washington (simulação)");
+
+L.marker([55.7,37.6]).addTo(map)
+.bindPopup("☢ Moscou (simulação)");
+
+L.marker([39.9,116.4]).addTo(map)
+.bindPopup("☢ Pequim (simulação)");
+
+L.marker([35.6,139.7]).addTo(map)
+.bindPopup("☢ Tóquio (simulação)");
+
+L.marker([48.8,2.3]).addTo(map)
+.bindPopup("☢ Paris (simulação)");
+
+L.marker([-23.55,-46.63]).addTo(map)
+.bindPopup("☢ São Paulo (simulação)");
+
+},100);
 
 }
 
@@ -174,7 +209,7 @@ let url="https://api.rss2json.com/v1/api.json?rss_url=https://news.google.com/rs
 let res=await fetch(url);
 let data=await res.json();
 
-let html="<div class='feed'><h2>📰 Notícias Globais</h2>";
+let html="<div class='feed'><h2>📰 Notícias</h2>";
 
 data.items.slice(0,15).forEach(n => {
 
