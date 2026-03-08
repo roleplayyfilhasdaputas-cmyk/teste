@@ -10,7 +10,7 @@ body{
   margin:0;
   font-family:'Courier New', monospace;
   background:#020617;
-  color:#00ff00;
+  color:#ff0000; /* Texto vermelho */
 }
 
 /* Top bar */
@@ -21,8 +21,8 @@ body{
   font-weight:bold;
   letter-spacing:1px;
   box-shadow:0 3px 6px rgba(0,0,0,0.5);
-  color:#00ff00;
-  border-bottom:2px solid #004400;
+  color:#ff0000;
+  border-bottom:2px solid #440000;
 }
 
 /* Container */
@@ -43,10 +43,10 @@ body{
   background:#010511;
   padding:20px;
   overflow:hidden;
-  border-left:3px solid #004400;
+  border-left:3px solid #440000;
   display:flex;
   flex-direction:column;
-  box-shadow: inset 0 0 20px #004400;
+  box-shadow: inset 0 0 20px #440000;
 }
 
 /* Alerta */
@@ -67,20 +67,20 @@ body{
   margin-bottom:15px;
   font-weight:bold;
   text-align:center;
-  color:#00ff00;
+  color:#ff0000;
   font-size:18px;
-  background:#001100;
+  background:#200000;
   padding:12px;
   border-radius:4px;
-  box-shadow: inset 0 0 10px #004400;
-  border:1px solid #004400;
+  box-shadow: inset 0 0 10px #440000;
+  border:1px solid #440000;
 }
 
 /* Tabela estilo painel */
 #lista{
   flex:1;
   overflow-y:auto;
-  border-top:2px solid #004400;
+  border-top:2px solid #440000;
   margin-top:10px;
 }
 table{
@@ -91,25 +91,24 @@ th, td{
   padding:6px;
   text-align:left;
   font-size:13px;
-  border-bottom:1px solid #004400;
-  color:#00ff00;
+  border-bottom:1px solid #440000;
+  color:#ff0000; /* texto vermelho */
 }
 th{
   font-weight:bold;
-  color:#00ff00;
 }
-tr:nth-child(even){background:#001100;}
-tr:nth-child(odd){background:#000a05;}
+tr:nth-child(even){background:#200000;}
+tr:nth-child(odd){background:#100000;}
 
 /* Barra de progresso */
 .progress-bar{
   display:inline-block;
   height:6px;
-  background:#00ff00;
+  background:#ff0000; /* barra vermelha */
   border-radius:3px;
 }
 .progress-container{
-  background:#001100;
+  background:#200000;
   border-radius:3px;
   width:80px;
   display:inline-block;
