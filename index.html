@@ -5,111 +5,113 @@
 <title>Painel Investigativo de Gastos Públicos - Todos Deputados</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-body {
-  background:#0b0b0b;
-  color:white;
-  font-family:Arial, sans-serif;
-  margin:0;
-  height: 100vh;
-  display: grid;
-  grid-template-columns: 300px 1fr;
-  overflow: hidden;
-}
-header {
-  grid-column: 1 / 3;
-  background:#c40000;
-  padding:20px;
-  font-size:24px;
-  font-weight:bold;
-}
-#listaDeputados {
-  background:#141414;
-  padding: 20px;
-  overflow-y: auto;
-  border-right: 1px solid #333;
-}
-#listaDeputados h3 {
-  margin-top: 0;
-  margin-bottom: 10px;
-}
-#listaDeputados input {
-  width: 100%;
-  padding: 8px;
-  margin-bottom: 15px;
-  border-radius: 6px;
-  border: none;
-}
-#listaDeputados ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-#listaDeputados li {
-  padding: 8px 10px;
-  cursor: pointer;
-  border-radius: 6px;
-}
-#listaDeputados li:hover,
-#listaDeputados li.active {
-  background: #c40000;
-  font-weight: bold;
-}
-#conteudo {
-  padding: 20px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  height: calc(100vh - 60px);
-}
-.searchExport {
-  margin-bottom: 15px;
-  display: flex;
-  gap: 10px;
-}
-.searchExport input {
-  flex: 1;
-  padding: 10px;
-  border-radius: 6px;
-  border: none;
-}
-.searchExport button {
-  background: #c40000;
-  border: none;
-  color: white;
-  padding: 10px 15px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-.grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  flex-grow: 1;
-  overflow: hidden;
-}
-.card {
-  background: #141414;
-  padding: 20px;
-  border-radius: 10px;
-  overflow-y: auto;
-}
-canvas {
-  background: #0f0f0f;
-  border-radius: 10px;
-  padding: 10px;
-}
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
-}
-th, td {
-  padding: 10px;
-  border-bottom: 1px solid #333;
-  text-align: left;
-}
-th { color: #ccc; }
-#count { margin-bottom: 10px; }
+  body {
+    background:#0b0b0b;
+    color:white;
+    font-family:Arial, sans-serif;
+    margin:0;
+    height: 100vh;
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    overflow: hidden;
+  }
+  header {
+    grid-column: 1 / 3;
+    background:#c40000;
+    padding:20px;
+    font-size:24px;
+    font-weight:bold;
+  }
+  #listaDeputados {
+    background:#141414;
+    padding: 20px;
+    overflow-y: auto;
+    border-right: 1px solid #333;
+  }
+  #listaDeputados h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+  }
+  #listaDeputados input {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 15px;
+    border-radius: 6px;
+    border: none;
+    background: #222;
+    color: white;
+  }
+  #listaDeputados ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  #listaDeputados li {
+    padding: 8px 10px;
+    cursor: pointer;
+    border-radius: 6px;
+  }
+  #listaDeputados li:hover,
+  #listaDeputados li.active {
+    background: #c40000;
+    font-weight: bold;
+  }
+  #conteudo {
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 60px);
+  }
+  .searchExport {
+    margin-bottom: 15px;
+    display: flex;
+    gap: 10px;
+  }
+  .searchExport input {
+    flex: 1;
+    padding: 10px;
+    border-radius: 6px;
+    border: none;
+  }
+  .searchExport button {
+    background: #c40000;
+    border: none;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    flex-grow: 1;
+    overflow: hidden;
+  }
+  .card {
+    background: #141414;
+    padding: 20px;
+    border-radius: 10px;
+    overflow-y: auto;
+  }
+  canvas {
+    background: #0f0f0f;
+    border-radius: 10px;
+    padding: 10px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+  }
+  th, td {
+    padding: 10px;
+    border-bottom: 1px solid #333;
+    text-align: left;
+  }
+  th { color: #ccc; }
+  #count { margin-bottom: 10px; }
 </style>
 </head>
 <body>
@@ -117,13 +119,13 @@ th { color: #ccc; }
 
 <div id="listaDeputados">
   <h3>Deputados</h3>
-  <input type="text" id="filtraDeputados" placeholder="Filtrar deputados..." />
+  <input type="text" id="filtraDeputados" placeholder="Filtrar deputados..." autocomplete="off" />
   <ul id="deputadosList"></ul>
 </div>
 
 <div id="conteudo">
   <div class="searchExport">
-    <input id="search" placeholder="Buscar deputado" />
+    <input id="search" placeholder="Buscar deputado" autocomplete="off" />
     <button onclick="buscarDeputado()">Buscar</button>
     <button onclick="exportCSV()">Exportar CSV</button>
   </div>
@@ -169,20 +171,35 @@ let deputados = [];
 let graficoDespesa, graficoValores;
 let deputadoSelecionadoId = null;
 
-// Carrega TODOS os deputados paginando a API
+// Carrega todos deputados com paginação da API
 async function carregarDeputados() {
   deputados = [];
   let pagina = 1;
-  let totalItens = 1;
-  while (deputados.length < totalItens) {
-    const res = await fetch(`https://dadosabertos.camara.leg.br/api/v2/deputados?itens=100&pagina=${pagina}`);
-    const json = await res.json();
-    deputados = deputados.concat(json.dados);
-    totalItens = json.links.find(l => l.rel === "last") ? parseInt(json.links.find(l => l.rel === "last").href.split("pagina=")[1]) * 100 : deputados.length;
-    pagina++;
-    if(json.dados.length === 0) break;
+  let totalDeputados = 1;
+  try {
+    while(deputados.length < totalDeputados) {
+      const res = await fetch(`https://dadosabertos.camara.leg.br/api/v2/deputados?itens=100&pagina=${pagina}`);
+      const json = await res.json();
+      deputados = deputados.concat(json.dados);
+      // Pega o total exato a partir do primeiro fetch
+      if(pagina === 1) totalDeputados = json.metadados.totalRegistros || json.dados.length;
+      if(json.dados.length === 0) break;
+      pagina++;
+    }
+    popularListaDeputados(deputados);
+    // Seleciona automaticamente o primeiro deputado da lista
+    if(deputados.length) {
+      const primeiro = deputados[0];
+      const li = [...document.querySelectorAll('#deputadosList li')].find(li => li.dataset.id == primeiro.id);
+      if(li) {
+        li.classList.add('active');
+        deputadoSelecionadoId = primeiro.id;
+        carregarDespesas(primeiro.id, primeiro.nome);
+      }
+    }
+  } catch(e) {
+    console.error("Erro ao carregar deputados:", e);
   }
-  popularListaDeputados(deputados);
 }
 
 function popularListaDeputados(lista) {
@@ -220,15 +237,19 @@ async function buscarDeputado() {
     if(li) li.scrollIntoView({behavior: 'smooth', block: 'center'});
     selecionarDeputado(dep.id, dep.nome, li);
   } else {
-    const res = await fetch(`https://dadosabertos.camara.leg.br/api/v2/deputados?nome=${encodeURIComponent(nome)}`);
-    const json = await res.json();
-    if(!json.dados.length){ alert('Deputado não encontrado'); return; }
-    const deputado = json.dados[0];
-    deputados.push(deputado);
-    popularListaDeputados(deputados);
-    const li = [...document.querySelectorAll('#deputadosList li')].find(li => li.dataset.id == deputado.id);
-    if(li) li.scrollIntoView({behavior: 'smooth', block: 'center'});
-    selecionarDeputado(deputado.id, deputado.nome, li);
+    try {
+      const res = await fetch(`https://dadosabertos.camara.leg.br/api/v2/deputados?nome=${encodeURIComponent(nome)}`);
+      const json = await res.json();
+      if(!json.dados.length){ alert('Deputado não encontrado'); return; }
+      const deputado = json.dados[0];
+      deputados.push(deputado);
+      popularListaDeputados(deputados);
+      const li = [...document.querySelectorAll('#deputadosList li')].find(li => li.dataset.id == deputado.id);
+      if(li) li.scrollIntoView({behavior: 'smooth', block: 'center'});
+      selecionarDeputado(deputado.id, deputado.nome, li);
+    } catch(e) {
+      alert('Erro na busca: ' + e.message);
+    }
   }
 }
 
@@ -239,7 +260,7 @@ async function carregarDespesas(id, nome) {
     dados = json.dados.map(d => ({
       deputado: nome,
       tipo: d.tipoDespesa,
-      valor: d.valorLiquido,
+      valor: parseFloat(d.valorLiquido),
       fornecedor: d.nomeFornecedor,
       data: d.dataDocumento
     }));
@@ -249,7 +270,9 @@ async function carregarDespesas(id, nome) {
     graficoDespesas();
     graficoValores();
     document.getElementById('count').innerText = `${dados.length} registros carregados`;
-  } catch (e) { alert('Erro ao carregar despesas: ' + e.message); }
+  } catch (e) {
+    alert('Erro ao carregar despesas: ' + e.message);
+  }
 }
 
 function renderTabela() {
@@ -267,7 +290,11 @@ function ranking() {
   dados.forEach(d => { mapa[d.tipo] = (mapa[d.tipo] || 0) + d.valor; });
   const lista = Object.entries(mapa).sort((a,b)=>b[1]-a[1]);
   const ul = document.getElementById('ranking'); ul.innerHTML='';
-  lista.forEach(([tipo, valor])=>{ const li=document.createElement('li'); li.innerText=`${tipo} - R$ ${valor.toLocaleString('pt-BR',{minimumFractionDigits:2})}`; ul.appendChild(li); });
+  lista.forEach(([tipo, valor])=>{ 
+    const li=document.createElement('li'); 
+    li.innerText=`${tipo} - R$ ${valor.toLocaleString('pt-BR',{minimumFractionDigits:2})}`; 
+    ul.appendChild(li); 
+  });
 }
 
 function pagamentosAltos() {
@@ -283,27 +310,75 @@ function graficoDespesas() {
   const mapa = {};
   dados.forEach(d => { mapa[d.tipo]=(mapa[d.tipo]||0)+d.valor; });
   if(graficoDespesa) graficoDespesa.destroy();
-  graficoDespesa = new Chart(document.getElementById('graficoDespesa'),{type:'pie',data:{labels:Object.keys(mapa),datasets:[{data:Object.values(mapa),backgroundColor:['#c40000','#ff5733','#ff8d1a','#ffc300','#d4ff00','#aaff00','#5aff00','#00ff55','#00ffd4','#00aaff','#0040ff','#5500ff']}]},options:{responsive:true,plugins:{legend:{position:'right',labels:{color:'white'}}}}});
+  graficoDespesa = new Chart(document.getElementById('graficoDespesa'),{
+    type:'pie',
+    data:{
+      labels:Object.keys(mapa),
+      datasets:[{
+        data:Object.values(mapa),
+        backgroundColor:[
+          '#c40000','#ff5733','#ff8d1a','#ffc300','#d4ff00','#aaff00',
+          '#5aff00','#00ff55','#00ffd4','#00aaff','#0040ff','#5500ff'
+        ]
+      }]
+    },
+    options:{
+      responsive:true,
+      plugins:{
+        legend:{position:'right',labels:{color:'white'}}
+      }
+    }
+  });
 }
 
 function graficoValores() {
   if(graficoValores) graficoValores.destroy();
   const top = dados.slice().sort((a,b)=>b.valor-a.valor).slice(0,5);
-  graficoValores = new Chart(document.getElementById('graficoValores'),{type:'bar',data:{labels:top.map(d=>d.tipo),datasets:[{label:'Valor',data:top.map(d=>d.valor),backgroundColor:'#c40000'}]},options:{responsive:true,scales:{y:{beginAtZero:true,ticks:{color:'white'}},x:{ticks:{color:'white'}}},plugins:{legend:{display:false}}}});
+  graficoValores = new Chart(document.getElementById('graficoValores'),{
+    type:'bar',
+    data:{
+      labels:top.map(d=>d.tipo),
+      datasets:[{
+        label:'Valor',
+        data:top.map(d=>d.valor),
+        backgroundColor:'#c40000'
+      }]
+    },
+    options:{
+      responsive:true,
+      scales:{
+        y:{beginAtZero:true,ticks:{color:'white'}},
+        x:{ticks:{color:'white'}}
+      },
+      plugins:{legend:{display:false}}
+    }
+  });
 }
 
 function exportCSV() {
   if(!dados.length){ alert('Nenhum dado para exportar!'); return; }
   let csv='Deputado,Tipo,Valor,Fornecedor,Data\n';
-  dados.forEach(d=>{ csv+=`"${d.deputado}","${d.tipo}","${d.valor.toFixed(2)}","${d.fornecedor}","${d.data}"\n`; });
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='gastos_deputado.csv'; a.click();
+  dados.forEach(d=>{
+    csv+=`"${d.deputado}","${d.tipo}","${d.valor.toFixed(2)}","${d.fornecedor}","${d.data}"\n`;
+  });
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='gastos_deputado.csv';
+  a.click();
 }
 
-// Atualiza dados automaticamente a cada 30 minutos se um deputado estiver selecionado
-setInterval(()=>{ if(deputadoSelecionadoId){ const depSelecionado=deputados.find(d=>d.id===deputadoSelecionadoId); if(depSelecionado){ carregarDespesas(deputadoSelecionadoId, depSelecionado.nome); } } },1800000);
+// Atualiza dados automaticamente a cada 30 minutos
+setInterval(() => {
+  if(deputadoSelecionadoId) {
+    const dep = deputados.find(d => d.id === deputadoSelecionadoId);
+    if(dep) carregarDespesas(deputadoSelecionadoId, dep.nome);
+  }
+}, 1800000);
 
-// Inicializa lista
+// Inicializa tudo
 carregarDeputados();
 </script>
+
 </body>
 </html>
