@@ -30,7 +30,7 @@ nav{
 background:#111;
 padding:12px;
 display:flex;
-gap:20px;
+gap:18px;
 flex-wrap:wrap;
 }
 
@@ -59,13 +59,21 @@ border:none;
 padding:20px;
 }
 
-.item{
+.news{
+display:flex;
+gap:10px;
 margin-bottom:15px;
 border-left:3px solid red;
 padding-left:10px;
 }
 
-#mapaNuclear{
+.news img{
+width:120px;
+height:80px;
+object-fit:cover;
+}
+
+#mapaBases{
 height:100%;
 }
 
@@ -81,17 +89,15 @@ height:100%;
 
 <nav>
 
-<a onclick="radar()">✈️ Aviões</a>
+<a onclick="aviComercial()">✈️ Aviões Comerciais</a>
 
-<a onclick="militares()">🛩 Aviões Militares</a>
+<a onclick="aviMilitar()">🛩 Aviões Militares</a>
 
-<a onclick="navios()">🚢 Navios</a>
+<a onclick="aviTodos()">🛫 Todos Aviões</a>
 
-<a onclick="sat()">🛰 ISS</a>
+<a onclick="navios()">🚢 Navios / Porta-aviões</a>
 
-<a onclick="explosoes()">☢ Alertas Satélite</a>
-
-<a onclick="nuclear()">☢ Bombas Atômicas</a>
+<a onclick="bases()">🪖 Bases Militares</a>
 
 <a onclick="conflitos()">🌍 Conflitos</a>
 
@@ -114,81 +120,72 @@ height:100%;
 
 <script>
 
-function radar(){
-document.getElementById("conteudo").innerHTML=
-`<iframe src="https://globe.adsbexchange.com/"></iframe>`;
+function aviComercial(){
+conteudo.innerHTML =
+`<iframe src="https://globe.adsbexchange.com/?filterType=1"></iframe>`;
 }
 
-function militares(){
-document.getElementById("conteudo").innerHTML=
+function aviMilitar(){
+conteudo.innerHTML =
 `<iframe src="https://globe.adsbexchange.com/?mil"></iframe>`;
 }
 
+function aviTodos(){
+conteudo.innerHTML =
+`<iframe src="https://globe.adsbexchange.com/"></iframe>`;
+}
+
 function navios(){
-document.getElementById("conteudo").innerHTML=
+conteudo.innerHTML =
 `<iframe src="https://www.marinetraffic.com/en/ais/embed/zoom:2/centery:20/centerx:0/maptype:4/shownames:true/shiptypes:8"></iframe>`;
 }
 
-function sat(){
-document.getElementById("conteudo").innerHTML=
-`<iframe src="https://isstracker.spaceflight.esa.int/"></iframe>`;
+function conflitos(){
+conteudo.innerHTML =
+`<iframe src="https://liveuamap.com/"></iframe>`;
 }
 
-function explosoes(){
-document.getElementById("conteudo").innerHTML=
-`<iframe src="https://firms.modaps.eosdis.nasa.gov/map/#d:24hrs;@0.0,0.0,2z"></iframe>`;
-}
+function bases(){
 
-function nuclear(){
-
-document.getElementById("conteudo").innerHTML=`<div id="mapaNuclear"></div>`;
+conteudo.innerHTML = `<div id="mapaBases"></div>`;
 
 setTimeout(()=>{
 
-var map = L.map('mapaNuclear').setView([20,0],2);
+var map = L.map('mapaBases').setView([30,0],2);
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-attribution:'Mapa'
-}).addTo(map);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-L.marker([38.9,-77]).addTo(map)
-.bindPopup("☢ Washington (simulação)");
+L.marker([36.0,-115.0]).addTo(map)
+.bindPopup("🇺🇸 Base Nellis (EUA)");
 
-L.marker([55.7,37.6]).addTo(map)
-.bindPopup("☢ Moscou (simulação)");
+L.marker([34.7,33.0]).addTo(map)
+.bindPopup("🇬🇧 Base Akrotiri (Reino Unido)");
 
-L.marker([39.9,116.4]).addTo(map)
-.bindPopup("☢ Pequim (simulação)");
+L.marker([35.4,139.4]).addTo(map)
+.bindPopup("🇯🇵 Base Yokosuka (Japão)");
 
-L.marker([35.6,139.7]).addTo(map)
-.bindPopup("☢ Tóquio (simulação)");
+L.marker([25.2,55.3]).addTo(map)
+.bindPopup("🇺🇸 Base Al Dhafra (EAU)");
 
-L.marker([48.8,2.3]).addTo(map)
-.bindPopup("☢ Paris (simulação)");
-
-L.marker([-23.55,-46.63]).addTo(map)
-.bindPopup("☢ São Paulo (simulação)");
+L.marker([52.3,13.5]).addTo(map)
+.bindPopup("🇩🇪 Base OTAN Alemanha");
 
 },100);
 
 }
 
-function conflitos(){
-document.getElementById("conteudo").innerHTML=
-`<iframe src="https://liveuamap.com/"></iframe>`;
-}
-
 async function foguetes(){
 
 let res = await fetch("https://ll.thespacedevs.com/2.2.0/launch/upcoming/?limit=5");
+
 let data = await res.json();
 
 let html="<div class='feed'><h2>🚀 Lançamentos Espaciais</h2>";
 
 data.results.forEach(l => {
 
-html+=`
-<div class="item">
+html += `
+<div style="margin-bottom:15px;border-left:3px solid red;padding-left:10px">
 🚀 ${l.name}<br>
 📅 ${l.net}
 </div>
@@ -196,9 +193,9 @@ html+=`
 
 });
 
-html+="</div>";
+html += "</div>";
 
-document.getElementById("conteudo").innerHTML=html;
+conteudo.innerHTML = html;
 
 }
 
@@ -211,12 +208,18 @@ let data=await res.json();
 
 let html="<div class='feed'><h2>📰 Notícias</h2>";
 
-data.items.slice(0,15).forEach(n => {
+data.items.slice(0,12).forEach(n=>{
 
 html+=`
-<div class="item">
+<div class="news">
+
+<img src="${n.thumbnail || 'https://via.placeholder.com/120'}">
+
+<div>
 <b>${n.title}</b><br>
 <a href="${n.link}" target="_blank" style="color:#ff4444">Abrir notícia</a>
+</div>
+
 </div>
 `;
 
@@ -224,7 +227,7 @@ html+=`
 
 html+="</div>";
 
-document.getElementById("conteudo").innerHTML=html;
+conteudo.innerHTML=html;
 
 }
 
