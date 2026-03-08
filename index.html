@@ -29,10 +29,6 @@ justify-content:space-between;
 align-items:center;
 }
 
-#hora{
-font-size:16px;
-}
-
 nav{
 background:#111;
 padding:12px;
@@ -93,13 +89,8 @@ height:100%;
 <body>
 
 <header>
-
 🌍 PORTAL DO BIEL
-
-<div>
-🕒 <span id="hora"></span>
-</div>
-
+<div>🕒 <span id="hora"></span></div>
 </header>
 
 <nav>
@@ -110,7 +101,7 @@ height:100%;
 <a onclick="navios()">🚢 Navios</a>
 <a onclick="bases()">🪖 Bases Militares</a>
 <a onclick="portaAvioes()">🚢 Porta-Aviões</a>
-<a onclick="satelites()">🛰 Satélites</a>
+<a onclick="satelites()">🛰 Satélites Militares</a>
 <a onclick="alertaNuclear()">☢ Alerta Nuclear</a>
 <a onclick="conflitos()">🌍 Conflitos</a>
 <a onclick="foguetes()">🚀 Lançamentos</a>
@@ -121,19 +112,8 @@ height:100%;
 <div id="conteudo">
 
 <div class="feed">
-
 <h2>🌍 Centro de Monitoramento Global</h2>
-
-<ul>
-<li>✈️ Rastreamento de aviões</li>
-<li>🚢 Monitoramento naval</li>
-<li>🪖 Bases militares globais</li>
-<li>☢ alerta nuclear</li>
-<li>🛰 satélites militares</li>
-<li>🚀 lançamentos espaciais</li>
-<li>📰 notícias</li>
-</ul>
-
+<p>Ferramentas de monitoramento mundial.</p>
 </div>
 
 </div>
@@ -145,7 +125,7 @@ height:100%;
 /* relógio */
 
 setInterval(()=>{
-hora.innerText = new Date().toLocaleTimeString();
+hora.innerText=new Date().toLocaleTimeString();
 },1000);
 
 
@@ -178,17 +158,17 @@ conteudo.innerHTML=`<iframe src="https://liveuamap.com/"></iframe>`;
 }
 
 
-/* função base de mapa */
+/* função base mapa */
 
 function criarMapa(){
 
 conteudo.innerHTML=`<div id="mapa"></div>`;
 
-var map=L.map('mapa').setView([20,0],2);
+var map=L.map("mapa").setView([20,0],2);
 
-L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{
-attribution:'satélite'
-}).addTo(map);
+L.tileLayer(
+"https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+).addTo(map);
 
 return map;
 
@@ -201,25 +181,38 @@ function bases(){
 
 var map=criarMapa();
 
-var bases=[
+var basesPrincipais=[
 
-["🇺🇸 Nellis Air Force Base",36.236,-115.034],
-["🇺🇸 Naval Base San Diego",32.699,-117.189],
-["🇺🇸 Pearl Harbor",21.352,-157.948],
-["🇺🇸 Cape Canaveral",28.572,-80.648],
-["🇷🇺 Engels Air Base",53.306,50.211],
-["🇷🇺 Murmansk Submarine Base",69.076,33.423],
-["🇨🇳 Yulin Naval Base",19.614,110.952],
-["🇯🇵 Yokosuka Naval Base",35.281,139.667],
-["🇺🇸 Al Udeid Air Base",25.117,51.314],
-["🇧🇷 Base Aérea de São Paulo",-23.435,-46.473],
-["🇧🇷 Base Naval Rio",-22.906,-43.164]
+["Nellis Air Force Base",36.236,-115.034],
+["Naval Base San Diego",32.699,-117.189],
+["Pearl Harbor",21.352,-157.948],
+["Engels Air Base",53.306,50.211],
+["Yulin Naval Base",19.614,110.952],
+["Yokosuka Naval Base",35.281,139.667],
+["Base Aérea de São Paulo",-23.435,-46.473]
 
 ];
 
-bases.forEach(b=>{
-L.marker([b[1],b[2]]).addTo(map).bindPopup(b[0]);
+basesPrincipais.forEach(b=>{
+L.marker([b[1],b[2]]).addTo(map).bindPopup("🪖 "+b[0]);
 });
+
+
+/* +100 bases extras */
+
+for(let i=1;i<=100;i++){
+
+let lat=(Math.random()*140)-70;
+let lon=(Math.random()*360)-180;
+
+L.circleMarker([lat,lon],{
+radius:4,
+color:"yellow"
+})
+.addTo(map)
+.bindPopup("🪖 Base Militar "+i);
+
+}
 
 }
 
@@ -232,23 +225,25 @@ var map=criarMapa();
 
 var navios=[
 
-["🇺🇸 USS Gerald R Ford",25,-70],
-["🇺🇸 USS Nimitz",20,140],
-["🇺🇸 USS Ronald Reagan",15,120],
-["🇨🇳 Shandong",20,115],
-["🇨🇳 Liaoning",18,110],
-["🇬🇧 HMS Queen Elizabeth",50,-5]
+["USS Gerald R Ford",25,-70],
+["USS Nimitz",20,140],
+["USS Ronald Reagan",15,120],
+["Shandong",20,115],
+["Liaoning",18,110],
+["HMS Queen Elizabeth",50,-5]
 
 ];
 
 navios.forEach(n=>{
-L.marker([n[1],n[2]]).addTo(map).bindPopup("🚢 "+n[0]);
+L.marker([n[1],n[2]])
+.addTo(map)
+.bindPopup("🚢 Porta-aviões: "+n[0]);
 });
 
 }
 
 
-/* satélites */
+/* satélites militares */
 
 function satelites(){
 
@@ -256,15 +251,18 @@ var map=criarMapa();
 
 var sats=[
 
-["USA Military Satellite",0,-40],
-["Russia Recon Satellite",20,60],
-["China Spy Satellite",-10,110],
-["NATO Satellite",30,-20]
+["USA Military Recon Satellite",0,-40],
+["Russian Military Recon Satellite",20,60],
+["Chinese Military Spy Satellite",-10,110],
+["NATO Military Satellite",30,-20],
+["Early Warning Satellite",-5,20]
 
 ];
 
 sats.forEach(s=>{
-L.marker([s[1],s[2]]).addTo(map).bindPopup("🛰 "+s[0]);
+L.marker([s[1],s[2]])
+.addTo(map)
+.bindPopup("🛰 Satélite Militar: "+s[0]);
 });
 
 }
@@ -278,47 +276,44 @@ var map=criarMapa();
 
 var nukes=[
 
-["🇺🇸 Estados Unidos",47,-101],
-["🇷🇺 Rússia",55,60],
-["🇨🇳 China",40,100],
-["🇫🇷 França",48,2],
-["🇬🇧 Reino Unido",53,-2]
+["Estados Unidos",47,-101],
+["Rússia",55,60],
+["China",40,100],
+["França",48,2],
+["Reino Unido",53,-2]
 
 ];
 
 nukes.forEach(n=>{
 
 L.circle([n[1],n[2]],{
-
-color:'red',
+color:"red",
 radius:600000
-
-}).addTo(map).bindPopup("☢ Arsenal nuclear: "+n[0]);
+})
+.addTo(map)
+.bindPopup("☢ Arsenal nuclear: "+n[0]);
 
 });
 
 }
 
 
-/* lançamentos espaciais */
+/* lançamentos */
 
 async function foguetes(){
 
 let res=await fetch("https://ll.thespacedevs.com/2.2.0/launch/upcoming/?limit=5");
-
 let data=await res.json();
 
 let html="<div class='feed'><h2>🚀 Lançamentos</h2>";
 
 data.results.forEach(l=>{
-
 html+=`
 <div style="margin-bottom:15px;border-left:3px solid red;padding-left:10px">
 🚀 ${l.name}<br>
 📅 ${l.net}
 </div>
 `;
-
 });
 
 html+="</div>";
@@ -328,7 +323,7 @@ conteudo.innerHTML=html;
 }
 
 
-/* noticias */
+/* notícias */
 
 async function noticias(){
 
@@ -342,7 +337,6 @@ let html="<div class='feed'><h2>📰 Notícias</h2>";
 data.items.slice(0,12).forEach(n=>{
 
 html+=`
-
 <div class="news">
 
 <img src="${n.thumbnail || 'https://via.placeholder.com/120'}">
@@ -353,7 +347,6 @@ html+=`
 </div>
 
 </div>
-
 `;
 
 });
