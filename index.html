@@ -5,10 +5,7 @@
 <head>
 
 <meta charset="UTF-8">
-<title>Observatório de Gastos Públicos</title>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<title>Radar de Gastos dos Deputados</title>
 
 <style>
 
@@ -26,68 +23,28 @@ font-size:28px;
 font-weight:bold;
 }
 
-nav{
-background:#1a1a1a;
-padding:12px;
-display:flex;
-gap:20px;
-}
-
-nav a{
-color:white;
-text-decoration:none;
-font-weight:bold;
-}
-
-.search{
+.container{
 padding:20px;
-}
-
-input{
-padding:10px;
-width:300px;
-border-radius:6px;
-border:none;
-}
-
-.grid{
-padding:20px;
-display:grid;
-grid-template-columns:repeat(3,1fr);
-gap:20px;
-}
-
-.card{
-background:#161616;
-padding:20px;
-border-radius:10px;
-}
-
-.alerta{
-color:#ff4444;
-font-weight:bold;
-}
-
-.rank{
-background:#111;
-padding:10px;
-margin-top:8px;
-border-radius:6px;
 }
 
 table{
 width:100%;
 border-collapse:collapse;
+background:#161616;
 }
 
-td,th{
-padding:8px;
+th,td{
+padding:10px;
 border-bottom:1px solid #333;
 }
 
-#map{
-height:400px;
-border-radius:10px;
+th{
+background:#1f1f1f;
+}
+
+.valor-alto{
+color:#ff4444;
+font-weight:bold;
 }
 
 </style>
@@ -97,179 +54,80 @@ border-radius:10px;
 <body>
 
 <header>
-Observatório de Gastos Públicos 🇧🇷
+Radar de Gastos Públicos 🇧🇷
 </header>
 
-<nav>
-<a href="#">Dashboard</a>
-<a href="#">Ranking</a>
-<a href="#">Mapa</a>
-<a href="#">Dados</a>
-</nav>
+<div class="container">
 
-<div class="search">
-<input id="busca" placeholder="Buscar político...">
-</div>
+<h2>Gastos recentes de deputados</h2>
 
-<div class="grid">
+<table>
 
-<div class="card">
-<h3>🚨 Alertas da IA</h3>
-<div id="alertas"></div>
-</div>
-
-<div class="card">
-<h3>📊 Gastos por categoria</h3>
-<canvas id="grafico1"></canvas>
-</div>
-
-<div class="card">
-<h3>🏆 Ranking</h3>
-<div id="ranking"></div>
-</div>
-
-</div>
-
-<div style="padding:20px">
-
-<div class="card">
-
-<h3>📋 Tabela de gastos</h3>
-
-<table id="tabela">
+<thead>
 
 <tr>
-<th>Nome</th>
-<th>Total</th>
-<th>Combustível</th>
-<th>Cidade</th>
+<th>Deputado</th>
+<th>Tipo de despesa</th>
+<th>Valor</th>
+<th>Data</th>
+<th>Fornecedor</th>
 </tr>
+
+</thead>
+
+<tbody id="tabela">
+
+</tbody>
 
 </table>
 
 </div>
 
-</div>
-
-<div style="padding:20px">
-
-<div class="card">
-
-<h3>🗺 Mapa de gastos</h3>
-<div id="map"></div>
-
-</div>
-
-</div>
-
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <script>
 
-const politicos = [
+async function carregar(){
 
-{name:"João Silva",total:520000,combustivel:200000,cidade:"São Paulo"},
-{name:"Maria Souza",total:430000,combustivel:50000,cidade:"Brasília"},
-{name:"Carlos Lima",total:390000,combustivel:180000,cidade:"Rio"},
-{name:"Ana Costa",total:250000,combustivel:30000,cidade:"Belo Horizonte"},
-{name:"Pedro Santos",total:610000,combustivel:240000,cidade:"Curitiba"}
+const url="https://dadosabertos.camara.leg.br/api/v2/despesas?itens=30&ordem=DESC&ordenarPor=dataDocumento"
 
-]
+const resposta=await fetch(url)
 
-function gerarRanking(){
-
-const div=document.getElementById("ranking")
-
-politicos.sort((a,b)=>b.total-a.total)
-
-politicos.forEach(p=>{
-
-div.innerHTML+=`
-<div class="rank">
-${p.name} — R$ ${p.total.toLocaleString()}
-</div>
-`
-
-})
-
-}
-
-function gerarTabela(){
+const json=await resposta.json()
 
 const tabela=document.getElementById("tabela")
 
-politicos.forEach(p=>{
+json.dados.forEach(d=>{
 
-tabela.innerHTML+=`
+let classe=""
 
-<tr>
-<td>${p.name}</td>
-<td>${p.total}</td>
-<td>${p.combustivel}</td>
-<td>${p.cidade}</td>
-</tr>
+if(d.valorLiquido>5000){
+
+classe="valor-alto"
+
+}
+
+const linha=document.createElement("tr")
+
+linha.innerHTML=`
+
+<td>${d.nomeDeputado}</td>
+<td>${d.tipoDespesa}</td>
+<td class="${classe}">R$ ${d.valorLiquido}</td>
+<td>${d.dataDocumento}</td>
+<td>${d.nomeFornecedor}</td>
 
 `
 
-})
-
-}
-
-function detectarAlertas(){
-
-const div=document.getElementById("alertas")
-
-politicos.forEach(p=>{
-
-if(p.combustivel>150000){
-
-div.innerHTML+=`
-
-<p class="alerta">
-⚠ ${p.name} gasto alto de combustível
-</p>
-
-`
-
-}
+tabela.appendChild(linha)
 
 })
 
 }
 
-gerarRanking()
-gerarTabela()
-detectarAlertas()
-
-const ctx=document.getElementById("grafico1")
-
-new Chart(ctx,{
-type:'bar',
-data:{
-labels:[
-'Combustível',
-'Viagens',
-'Alimentação',
-'Publicidade'
-],
-datasets:[{
-label:'Gastos',
-data:[200000,90000,60000,40000]
-}]
-}
-})
-
-var map=L.map('map').setView([-14.235,-51.9253],4)
-
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-maxZoom:18
-}).addTo(map)
-
-L.marker([-23.55,-46.63]).addTo(map).bindPopup("São Paulo")
-L.marker([-15.79,-47.88]).addTo(map).bindPopup("Brasília")
+carregar()
 
 </script>
 
 </body>
+
 </html>
 ```
