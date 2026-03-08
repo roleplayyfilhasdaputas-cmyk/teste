@@ -5,39 +5,24 @@
 <title>Radar FRANCA - Helicópteros</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
-/* Global */
 body{
   margin:0;
   font-family:'Courier New', monospace;
   background:#020617;
-  color:#ff0000; /* Texto vermelho */
+  color:#ff0000;
 }
-
-/* Top bar */
 #topbar{
   background:#010511;
   padding:14px 20px;
   font-size:22px;
   font-weight:bold;
   letter-spacing:1px;
-  box-shadow:0 3px 6px rgba(0,0,0,0.5);
   color:#ff0000;
   border-bottom:2px solid #440000;
+  box-shadow:0 3px 6px rgba(0,0,0,0.5);
 }
-
-/* Container */
-#container{
-  display:flex;
-  height:calc(100vh - 56px);
-}
-
-/* Map */
-#map{
-  flex:3;
-  height:100%;
-}
-
-/* Painel lateral estilo dispositivo */
+#container{display:flex; height:calc(100vh - 56px);}
+#map{flex:3; height:100%;}
 #painel{
   flex:1;
   background:#010511;
@@ -48,8 +33,6 @@ body{
   flex-direction:column;
   box-shadow: inset 0 0 20px #440000;
 }
-
-/* Alerta */
 #alerta{
   background:#ff0000;
   padding:12px;
@@ -61,8 +44,6 @@ body{
   box-shadow:0 0 10px #ff0000;
   animation: pulse 1.2s infinite;
 }
-
-/* Contador helicópteros ativos */
 #contador{
   margin-bottom:15px;
   font-weight:bold;
@@ -75,52 +56,15 @@ body{
   box-shadow: inset 0 0 10px #440000;
   border:1px solid #440000;
 }
-
-/* Tabela estilo painel */
-#lista{
-  flex:1;
-  overflow-y:auto;
-  border-top:2px solid #440000;
-  margin-top:10px;
-}
-table{
-  width:100%;
-  border-collapse:collapse;
-}
-th, td{
-  padding:6px;
-  text-align:left;
-  font-size:13px;
-  border-bottom:1px solid #440000;
-  color:#ff0000; /* texto vermelho */
-}
-th{
-  font-weight:bold;
-}
+#lista{flex:1; overflow-y:auto; border-top:2px solid #440000; margin-top:10px;}
+table{width:100%; border-collapse:collapse;}
+th, td{padding:6px; text-align:left; font-size:13px; border-bottom:1px solid #440000; color:#ff0000;}
+th{font-weight:bold;}
 tr:nth-child(even){background:#200000;}
 tr:nth-child(odd){background:#100000;}
-
-/* Barra de progresso */
-.progress-bar{
-  display:inline-block;
-  height:6px;
-  background:#ff0000; /* barra vermelha */
-  border-radius:3px;
-}
-.progress-container{
-  background:#200000;
-  border-radius:3px;
-  width:80px;
-  display:inline-block;
-  vertical-align:middle;
-}
-
-/* Pulse animation para alerta */
-@keyframes pulse{
-  0%{opacity:1;}
-  50%{opacity:0.6;}
-  100%{opacity:1;}
-}
+.progress-bar{display:inline-block;height:6px;background:#ff0000;border-radius:3px;}
+.progress-container{background:#200000;border-radius:3px;width:80px;display:inline-block;vertical-align:middle;}
+@keyframes pulse{0%{opacity:1;}50%{opacity:0.6;}100%{opacity:1;}}
 </style>
 </head>
 <body>
@@ -149,44 +93,30 @@ tr:nth-child(odd){background:#100000;}
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-var centro = {lat:-20.5386, lon:-47.4000};
-var raio = 5;
-
-var map = L.map('map').setView([centro.lat,centro.lon],12);
+var centro={lat:-20.5386,lon:-47.4000};
+var raio=5;
+var map=L.map('map').setView([centro.lat,centro.lon],12);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
-
 L.circle([centro.lat,centro.lon],{radius:raio*1000,color:"red",fill:false}).addTo(map);
 
-var trilhas = {};
-var markers = {};
-var bases = {};
-var estacionados = {};
-var iconeBase = L.icon({iconUrl:'https://cdn-icons-png.flaticon.com/512/684/684908.png',iconSize:[30,30]});
-
-if(localStorage.getItem("bases")) bases = JSON.parse(localStorage.getItem("bases"));
+var trilhas={}; var markers={}; var bases={}; var estacionados={}; var iconeBase=L.icon({iconUrl:'https://cdn-icons-png.flaticon.com/512/684/684908.png',iconSize:[30,30]});
+if(localStorage.getItem("bases")) bases=JSON.parse(localStorage.getItem("bases"));
 
 function distancia(lat1,lon1,lat2,lon2){
-  var R=6371;
-  var dLat=(lat2-lat1)*Math.PI/180;
-  var dLon=(lon2-lon1)*Math.PI/180;
-  var a= Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)**2;
+  var R=6371; var dLat=(lat2-lat1)*Math.PI/180; var dLon=(lon2-lon1)*Math.PI/180;
+  var a=Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
   var c=2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
   return R*c;
 }
 
-function detectarHelicoptero(vel,alt){
-  if(!vel) return false;
-  if(vel < 120 && alt < 3000) return true;
-  return false;
-}
-
+function detectarHelicoptero(vel,alt){ if(!vel) return false; if(vel<120 && alt<3000) return true; return false; }
 function limparMarcadores(){ Object.values(markers).forEach(m=>map.removeLayer(m)); markers={}; }
 
 function adicionarBase(lat,lon){
-  let key = lat.toFixed(3)+"_"+lon.toFixed(3);
-  let agora = Date.now();
-  if(!bases[key]){ bases[key]={lat:lat,lon:lon,timestamp:agora,count:1}; }
-  else{ bases[key].count++; bases[key].timestamp=agora; }
+  let key=lat.toFixed(3)+"_"+lon.toFixed(3);
+  let agora=Date.now();
+  if(!bases[key]) bases[key]={lat:lat,lon:lon,timestamp:agora,count:1};
+  else {bases[key].count++; bases[key].timestamp=agora;}
   localStorage.setItem("bases",JSON.stringify(bases));
 }
 
@@ -195,28 +125,25 @@ function desenharBases(){
   Object.keys(bases).forEach(key=>{
     if((agora-bases[key].timestamp)<=20*24*60*60*1000){
       L.marker([bases[key].lat,bases[key].lon],{icon:iconeBase})
-        .bindPopup(`BASE / Pouso (20 dias) - ${bases[key].count} pouso(s)`)
-        .addTo(map);
+        .bindPopup(`BASE / Pouso (20 dias) - ${bases[key].count} pouso(s)`).addTo(map);
     }
   });
 }
 
 async function radar(){
   limparMarcadores();
-  let r = await fetch("https://opensky-network.org/api/states/all");
-  let data = await r.json();
-
+  let r=await fetch("https://opensky-network.org/api/states/all");
+  let data=await r.json();
   document.getElementById("tabela-deteccoes").innerHTML="";
   document.getElementById("alerta").style.display="none";
-
   let countAtivos=0;
 
   data.states.forEach(a=>{
     let id=a[0],callsign=a[1],lon=a[5],lat=a[6],alt=a[7],vel=a[9];
     if(!lat||!lon) return;
-    if(distancia(centro.lat,centro.lon,lat,lon)<raio){
+    let dist=distancia(centro.lat,centro.lon,lat,lon);
+    if(dist<raio){
       if(!detectarHelicoptero(vel,alt)) return;
-
       countAtivos++;
 
       let marker=L.marker([lat,lon]).addTo(map).bindPopup(callsign);
@@ -226,12 +153,17 @@ async function radar(){
       trilhas[id].push([lat,lon]);
       L.polyline(trilhas[id],{color:"red"}).addTo(map);
 
+      // Previsão simples de rota
+      let futuroLat=lat + (vel/111111)*Math.cos(0); // simplificação
+      let futuroLon=lon + (vel/111111)*Math.sin(0);
+      L.polyline([[lat,lon],[futuroLat,futuroLon]],{color:"orange",dashArray:"5,10"}).addTo(map);
+
       document.getElementById("alerta").style.display="block";
 
-      let status = vel<5?"Pousado":"Em voo";
+      let status=vel<5?"Pousado":"Em voo";
       let velBar=Math.min(vel/120*80,80);
       let altBar=Math.min(alt/3000*80,80);
-      let row = `<tr>
+      let row=`<tr>
         <td>${callsign}</td>
         <td>${alt}<div class="progress-container"><div class="progress-bar" style="width:${altBar}px"></div></div></td>
         <td>${vel}<div class="progress-container"><div class="progress-bar" style="width:${velBar}px"></div></td>
