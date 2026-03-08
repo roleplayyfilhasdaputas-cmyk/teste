@@ -95,7 +95,7 @@ padding-left:10px;
 
 <div class="feed">
 <h2>Painel Global</h2>
-<p>Escolha uma ferramenta no menu acima.</p>
+<p>Escolha uma ferramenta acima.</p>
 </div>
 
 </div>
@@ -103,28 +103,28 @@ padding-left:10px;
 <script>
 
 function radar(){
-document.getElementById("conteudo").innerHTML =
+document.getElementById("conteudo").innerHTML=
 `<iframe src="https://globe.adsbexchange.com/"></iframe>`;
 }
 
 function militares(){
-document.getElementById("conteudo").innerHTML =
+document.getElementById("conteudo").innerHTML=
 `<iframe src="https://globe.adsbexchange.com/?mil"></iframe>`;
 }
 
 function naviosMilitares(){
 
-document.getElementById("conteudo").innerHTML = `
+document.getElementById("conteudo").innerHTML=`
 
 <div style="display:flex;flex-direction:column;height:100%">
 
 <div class="feed">
-<h2>🚢 Navios de Guerra</h2>
-<p>Monitoramento de porta-aviões e navios militares.</p>
+<h2>🚢 Radar Naval Militar</h2>
+<p>Monitoramento de navios de guerra, porta-aviões e embarcações militares.</p>
 </div>
 
 <iframe
-src="https://www.cruisingearth.com/military-ship-tracker/"
+src="https://www.marinetraffic.com/en/ais/embed/zoom:2/centery:20/centerx:0/maptype:4/shownames:true/shiptypes:8"
 style="flex:1;border:none">
 </iframe>
 
@@ -135,29 +135,12 @@ style="flex:1;border:none">
 }
 
 function sat(){
-
-document.getElementById("conteudo").innerHTML = `
-
-<div style="display:flex;flex-direction:column;height:100%">
-
-<div class="feed">
-<h2>🛰 Satélites em Órbita</h2>
-<p>Monitoramento global de satélites.</p>
-</div>
-
-<iframe
-src="https://satellitemap.space/"
-style="flex:1;border:none">
-</iframe>
-
-</div>
-
-`;
-
+document.getElementById("conteudo").innerHTML=
+`<iframe src="https://satellitemap.space/"></iframe>`;
 }
 
 function conflitos(){
-document.getElementById("conteudo").innerHTML =
+document.getElementById("conteudo").innerHTML=
 `<iframe src="https://liveuamap.com/"></iframe>`;
 }
 
@@ -180,9 +163,9 @@ html += `
 
 });
 
-html += "</div>";
+html+="</div>";
 
-document.getElementById("conteudo").innerHTML = html;
+document.getElementById("conteudo").innerHTML=html;
 
 }
 
@@ -190,15 +173,15 @@ async function noticias(){
 
 let url="https://api.rss2json.com/v1/api.json?rss_url=https://news.google.com/rss?hl=pt-BR&gl=BR&ceid=BR:pt";
 
-let res = await fetch(url);
+let res=await fetch(url);
 
-let data = await res.json();
+let data=await res.json();
 
 let html="<div class='feed'><h2>📰 Notícias em Português</h2>";
 
 data.items.slice(0,15).forEach(n => {
 
-html += `
+html+=`
 <div class="item">
 <b>${n.title}</b><br>
 <a href="${n.link}" target="_blank" style="color:#ff4444">Abrir notícia</a>
@@ -207,9 +190,9 @@ html += `
 
 });
 
-html += "</div>";
+html+="</div>";
 
-document.getElementById("conteudo").innerHTML = html;
+document.getElementById("conteudo").innerHTML=html;
 
 }
 
