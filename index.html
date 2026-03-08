@@ -3,7 +3,7 @@
 
 <head>
 <meta charset="UTF-8">
-<title>Radar Investigativo de Gastos Públicos</title>
+<title>Radar Investigativo de Gastos</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -29,7 +29,7 @@ padding:20px;
 
 input{
 padding:10px;
-width:360px;
+width:350px;
 margin-bottom:20px;
 border-radius:6px;
 border:none;
@@ -40,11 +40,6 @@ background:#161616;
 padding:20px;
 margin-bottom:20px;
 border-radius:10px;
-}
-
-.alerta{
-color:#ff4444;
-font-weight:bold;
 }
 
 table{
@@ -61,10 +56,6 @@ th{
 background:#1f1f1f;
 }
 
-.risco-baixo{color:#00ff9c}
-.risco-medio{color:#ffcc00}
-.risco-alto{color:#ff4444;font-weight:bold}
-
 canvas{
 background:#111;
 padding:10px;
@@ -72,12 +63,13 @@ border-radius:10px;
 }
 
 </style>
+
 </head>
 
 <body>
 
 <header>
-🕵️ Radar Investigativo de Gastos Públicos
+Radar Investigativo de Gastos Públicos
 </header>
 
 <div class="container">
@@ -85,64 +77,31 @@ border-radius:10px;
 <input id="busca" placeholder="Buscar deputado ou fornecedor">
 
 <div class="card">
-<h3>🚨 Alertas da análise</h3>
-<div id="alertas"></div>
-</div>
-
-<div class="card">
-<h3>🧠 Score de risco por deputado</h3>
-<div id="score"></div>
-</div>
-
-<div class="card">
-<h3>🏆 Ranking de gastos</h3>
+<h3>Ranking de gastos</h3>
 <div id="ranking"></div>
 </div>
 
 <div class="card">
-<h3>🏢 Fornecedores com mais pagamentos</h3>
+<h3>Fornecedores mais usados</h3>
 <div id="fornecedores"></div>
 </div>
 
 <div class="card">
-<h3>🧾 Cruzamento por CNPJ/CPF fornecedor</h3>
-<div id="cnpjAnalise"></div>
+<h3>CNPJ ligados a vários deputados</h3>
+<div id="cnpjs"></div>
 </div>
 
 <div class="card">
-<h3>💰 Total analisado</h3>
-<div id="total"></div>
+<h3>Distribuição de despesas</h3>
+<canvas id="grafico"></canvas>
 </div>
 
 <div class="card">
-<h3>📊 Distribuição de despesas</h3>
-<canvas id="graficoCategorias"></canvas>
-</div>
 
-<div class="card">
-<h3>📈 Evolução de gastos</h3>
-<canvas id="graficoTempo"></canvas>
-</div>
-
-<div class="card">
-<h3>📊 Top deputados</h3>
-<canvas id="graficoDeputados"></canvas>
-</div>
-
-<div class="card">
-<h3>🏢 Top fornecedores</h3>
-<canvas id="graficoFornecedores"></canvas>
-</div>
-
-<div class="card">
-<h3>🕸 Conexões deputado → fornecedor</h3>
-<div id="conexoes"></div>
-</div>
-
-<div class="card">
-<h3>📋 Gastos recentes</h3>
+<h3>Despesas</h3>
 
 <table>
+
 <thead>
 <tr>
 <th>Deputado</th>
@@ -156,58 +115,54 @@ border-radius:10px;
 <tbody id="tabela"></tbody>
 
 </table>
+
 </div>
 
 </div>
 
 <script>
 
-let graficoCategorias
-let graficoTempo
-let graficoDeputados
-let graficoFornecedores
+let grafico
 
 async function carregar(){
 
-const url="https://dadosabertos.camara.leg.br/api/v2/despesas?itens=200&ordem=DESC&ordenarPor=dataDocumento"
+const tabela=document.getElementById("tabela")
+const rankingDiv=document.getElementById("ranking")
+const fornecedoresDiv=document.getElementById("fornecedores")
+const cnpjDiv=document.getElementById("cnpjs")
+
+tabela.innerHTML=""
+rankingDiv.innerHTML=""
+fornecedoresDiv.innerHTML=""
+cnpjDiv.innerHTML=""
+
+const deputados={}
+const fornecedores={}
+const categorias={}
+const cnpjs={}
+
+const anoAtual=new Date().getFullYear()
+
+let todosDados=[]
+
+for(let ano=2020;ano<=anoAtual;ano++){
+
+const url=`https://dadosabertos.camara.leg.br/api/v2/despesas?ano=${ano}&itens=100`
+
+try{
 
 const res=await fetch(url)
 const json=await res.json()
 
-const dados=json.dados
+todosDados=todosDados.concat(json.dados)
 
-const tabela=document.getElementById("tabela")
-const alertas=document.getElementById("alertas")
-const rankingDiv=document.getElementById("ranking")
-const fornecedoresDiv=document.getElementById("fornecedores")
-const scoreDiv=document.getElementById("score")
-const totalDiv=document.getElementById("total")
-const conexoesDiv=document.getElementById("conexoes")
-const cnpjDiv=document.getElementById("cnpjAnalise")
+}catch(e){}
 
-tabela.innerHTML=""
-alertas.innerHTML=""
-rankingDiv.innerHTML=""
-fornecedoresDiv.innerHTML=""
-scoreDiv.innerHTML=""
-conexoesDiv.innerHTML=""
-cnpjDiv.innerHTML=""
+}
 
-const fornecedores={}
-const deputados={}
-const categorias={}
-const risco={}
-const tempo={}
-const conexoes={}
-const cnpjs={}
-
-let total=0
-
-dados.forEach(g=>{
+todosDados.forEach(g=>{
 
 const valor=parseFloat(g.valorLiquido)
-
-total+=valor
 
 const linha=document.createElement("tr")
 
@@ -221,30 +176,14 @@ linha.innerHTML=`
 
 tabela.appendChild(linha)
 
-if(!fornecedores[g.nomeFornecedor]) fornecedores[g.nomeFornecedor]=0
-fornecedores[g.nomeFornecedor]++
-
 if(!deputados[g.nomeDeputado]) deputados[g.nomeDeputado]=0
 deputados[g.nomeDeputado]+=valor
 
-if(!risco[g.nomeDeputado]) risco[g.nomeDeputado]=0
+if(!fornecedores[g.nomeFornecedor]) fornecedores[g.nomeFornecedor]=0
+fornecedores[g.nomeFornecedor]++
 
 if(!categorias[g.tipoDespesa]) categorias[g.tipoDespesa]=0
 categorias[g.tipoDespesa]+=valor
-
-const dia=g.dataDocumento.split("T")[0]
-
-if(!tempo[dia]) tempo[dia]=0
-tempo[dia]+=valor
-
-// conexões
-
-if(!conexoes[g.nomeDeputado]) conexoes[g.nomeDeputado]={}
-if(!conexoes[g.nomeDeputado][g.nomeFornecedor]) conexoes[g.nomeDeputado][g.nomeFornecedor]=0
-
-conexoes[g.nomeDeputado][g.nomeFornecedor]++
-
-// cruzamento CNPJ
 
 const cnpj=g.cnpjCpfFornecedor
 
@@ -252,60 +191,7 @@ if(!cnpjs[cnpj]) cnpjs[cnpj]=[]
 
 cnpjs[cnpj].push(g.nomeDeputado)
 
-// regras simples
-
-if(valor>10000){
-risco[g.nomeDeputado]+=2
-}
-
-if(valor>20000){
-risco[g.nomeDeputado]+=4
-}
-
 })
-
-Object.keys(cnpjs).forEach(cnpj=>{
-
-const deps=[...new Set(cnpjs[cnpj])]
-
-if(deps.length>3){
-
-alertas.innerHTML+=`
-<p class="alerta">
-🚨 fornecedor recebendo de vários deputados: ${cnpj}
-</p>
-`
-
-}
-
-})
-
-// score risco
-
-Object.keys(risco).forEach(d=>{
-
-let classe="risco-baixo"
-let texto="baixo"
-
-if(risco[d]>5){
-classe="risco-medio"
-texto="médio"
-}
-
-if(risco[d]>10){
-classe="risco-alto"
-texto="alto"
-}
-
-scoreDiv.innerHTML+=`
-<p class="${classe}">
-${d} — risco ${texto} (score ${risco[d]})
-</p>
-`
-
-})
-
-// ranking deputados
 
 const ranking=Object.entries(deputados)
 .sort((a,b)=>b[1]-a[1])
@@ -319,13 +205,10 @@ rankingDiv.innerHTML+=`
 
 })
 
-// fornecedores top
-
-const topFornecedores=Object.entries(fornecedores)
+Object.entries(fornecedores)
 .sort((a,b)=>b[1]-a[1])
 .slice(0,5)
-
-topFornecedores.forEach(f=>{
+.forEach(f=>{
 
 fornecedoresDiv.innerHTML+=`
 <p>${f[0]} — ${f[1]} pagamentos</p>
@@ -333,40 +216,24 @@ fornecedoresDiv.innerHTML+=`
 
 })
 
-// conexões
+Object.keys(cnpjs).forEach(c=>{
 
-Object.keys(conexoes).slice(0,5).forEach(dep=>{
+const deps=[...new Set(cnpjs[c])]
 
-Object.keys(conexoes[dep]).slice(0,3).forEach(f=>{
-
-conexoesDiv.innerHTML+=`
-<p>${dep} → ${f} (${conexoes[dep][f]} pagamentos)</p>
-`
-
-})
-
-})
-
-// mostrar CNPJ com mais deputados
-
-Object.keys(cnpjs).slice(0,5).forEach(cnpj=>{
-
-const deps=[...new Set(cnpjs[cnpj])]
+if(deps.length>4){
 
 cnpjDiv.innerHTML+=`
-<p>${cnpj} — ligado a ${deps.length} deputados</p>
+<p>${c} — ligado a ${deps.length} deputados</p>
 `
+
+}
 
 })
 
-totalDiv.innerHTML="R$ "+Math.round(total).toLocaleString()
+if(grafico) grafico.destroy()
 
-// gráfico categorias
-
-if(graficoCategorias) graficoCategorias.destroy()
-
-graficoCategorias=new Chart(
-document.getElementById("graficoCategorias"),
+grafico=new Chart(
+document.getElementById("grafico"),
 {
 type:'bar',
 data:{
@@ -378,62 +245,9 @@ data:Object.values(categorias)
 }
 })
 
-// gráfico tempo
-
-if(graficoTempo) graficoTempo.destroy()
-
-graficoTempo=new Chart(
-document.getElementById("graficoTempo"),
-{
-type:'line',
-data:{
-labels:Object.keys(tempo),
-datasets:[{
-label:"Gastos por dia",
-data:Object.values(tempo)
-}]
-}
-})
-
-// gráfico deputados
-
-if(graficoDeputados) graficoDeputados.destroy()
-
-graficoDeputados=new Chart(
-document.getElementById("graficoDeputados"),
-{
-type:'bar',
-data:{
-labels:ranking.map(r=>r[0]),
-datasets:[{
-label:"Top gastos",
-data:ranking.map(r=>r[1])
-}]
-}
-})
-
-// gráfico fornecedores
-
-if(graficoFornecedores) graficoFornecedores.destroy()
-
-graficoFornecedores=new Chart(
-document.getElementById("graficoFornecedores"),
-{
-type:'bar',
-data:{
-labels:topFornecedores.map(f=>f[0]),
-datasets:[{
-label:"Pagamentos",
-data:topFornecedores.map(f=>f[1])
-}]
-}
-})
-
 }
 
 carregar()
-
-setInterval(carregar,60000)
 
 document.getElementById("busca").addEventListener("keyup",function(){
 
