@@ -2,10 +2,8 @@
 <html lang="pt-br">
 
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
 <title>Portal do Biel</title>
 
 <style>
@@ -64,7 +62,6 @@ padding-left:10px;
 }
 
 </style>
-
 </head>
 
 <body>
@@ -79,9 +76,11 @@ padding-left:10px;
 
 <a onclick="militares()">🛩 Aviões Militares</a>
 
-<a onclick="naviosMilitares()">🚢 Navios Militares</a>
+<a onclick="navios()">🚢 Navios</a>
 
-<a onclick="sat()">🛰 Satélite</a>
+<a onclick="sat()">🛰 ISS</a>
+
+<a onclick="explosoes()">☢ Alertas Satélite</a>
 
 <a onclick="conflitos()">🌍 Conflitos</a>
 
@@ -92,12 +91,10 @@ padding-left:10px;
 </nav>
 
 <div id="conteudo">
-
 <div class="feed">
 <h2>Painel Global</h2>
 <p>Escolha uma ferramenta acima.</p>
 </div>
-
 </div>
 
 <script>
@@ -112,42 +109,28 @@ document.getElementById("conteudo").innerHTML=
 `<iframe src="https://globe.adsbexchange.com/?mil"></iframe>`;
 }
 
-function naviosMilitares(){
-
-document.getElementById("conteudo").innerHTML=`
-
-<div style="display:flex;flex-direction:column;height:100%">
-
-<div class="feed">
-<h2>🚢 Radar Naval</h2>
-<p>Monitoramento global de navios.</p>
-</div>
-
-<iframe
-src="https://www.marinetraffic.com/en/ais/embed/zoom:2/centery:20/centerx:0/maptype:4/shownames:true/shiptypes:8">
-</iframe>
-
-</div>
-
-`;
-
+function navios(){
+document.getElementById("conteudo").innerHTML=
+`<iframe src="https://www.marinetraffic.com/en/ais/embed/zoom:2/centery:20/centerx:0/maptype:4/shownames:true/shiptypes:8"></iframe>`;
 }
 
 function sat(){
+document.getElementById("conteudo").innerHTML=
+`<iframe src="https://isstracker.spaceflight.esa.int/"></iframe>`;
+}
+
+function explosoes(){
 
 document.getElementById("conteudo").innerHTML=`
 
 <div style="display:flex;flex-direction:column;height:100%">
 
 <div class="feed">
-<h2>🛰 Rastreamento da ISS</h2>
-<p>Posição da Estação Espacial Internacional em tempo real.</p>
+<h2>☢ Detecção de Calor por Satélite</h2>
+<p>Pontos de calor detectados por satélites da NASA (incêndios, explosões e eventos térmicos).</p>
 </div>
 
-<iframe
-src="https://isstracker.spaceflight.esa.int/"
-style="flex:1;border:none">
-</iframe>
+<iframe src="https://firms.modaps.eosdis.nasa.gov/map/#d:24hrs;@0.0,0.0,2z"></iframe>
 
 </div>
 
@@ -163,14 +146,13 @@ document.getElementById("conteudo").innerHTML=
 async function foguetes(){
 
 let res = await fetch("https://ll.thespacedevs.com/2.2.0/launch/upcoming/?limit=5");
-
 let data = await res.json();
 
 let html="<div class='feed'><h2>🚀 Lançamentos Espaciais</h2>";
 
 data.results.forEach(l => {
 
-html += `
+html+=`
 <div class="item">
 🚀 ${l.name}<br>
 📅 ${l.net}
@@ -190,10 +172,9 @@ async function noticias(){
 let url="https://api.rss2json.com/v1/api.json?rss_url=https://news.google.com/rss?hl=pt-BR&gl=BR&ceid=BR:pt";
 
 let res=await fetch(url);
-
 let data=await res.json();
 
-let html="<div class='feed'><h2>📰 Notícias</h2>";
+let html="<div class='feed'><h2>📰 Notícias Globais</h2>";
 
 data.items.slice(0,15).forEach(n => {
 
