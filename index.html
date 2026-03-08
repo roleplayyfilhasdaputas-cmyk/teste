@@ -2,7 +2,6 @@
 <html lang="pt-br">
 
 <head>
-
 <meta charset="UTF-8">
 <title>Radar Investigativo de Gastos Públicos</title>
 
@@ -30,7 +29,7 @@ padding:20px;
 
 input{
 padding:10px;
-width:350px;
+width:360px;
 margin-bottom:20px;
 border-radius:6px;
 border:none;
@@ -73,13 +72,12 @@ border-radius:10px;
 }
 
 </style>
-
 </head>
 
 <body>
 
 <header>
-🕵️ Radar Investigativo de Gastos 🇧🇷
+🕵️ Radar Investigativo de Gastos Públicos
 </header>
 
 <div class="container">
@@ -87,7 +85,7 @@ border-radius:10px;
 <input id="busca" placeholder="Buscar deputado ou fornecedor">
 
 <div class="card">
-<h3>🚨 Alertas da IA Investigadora</h3>
+<h3>🚨 Alertas da análise</h3>
 <div id="alertas"></div>
 </div>
 
@@ -104,6 +102,11 @@ border-radius:10px;
 <div class="card">
 <h3>🏢 Fornecedores com mais pagamentos</h3>
 <div id="fornecedores"></div>
+</div>
+
+<div class="card">
+<h3>🧾 Cruzamento por CNPJ/CPF fornecedor</h3>
+<div id="cnpjAnalise"></div>
 </div>
 
 <div class="card">
@@ -127,16 +130,19 @@ border-radius:10px;
 </div>
 
 <div class="card">
+<h3>🏢 Top fornecedores</h3>
+<canvas id="graficoFornecedores"></canvas>
+</div>
+
+<div class="card">
 <h3>🕸 Conexões deputado → fornecedor</h3>
 <div id="conexoes"></div>
 </div>
 
 <div class="card">
-
 <h3>📋 Gastos recentes</h3>
 
 <table>
-
 <thead>
 <tr>
 <th>Deputado</th>
@@ -150,7 +156,6 @@ border-radius:10px;
 <tbody id="tabela"></tbody>
 
 </table>
-
 </div>
 
 </div>
@@ -160,10 +165,11 @@ border-radius:10px;
 let graficoCategorias
 let graficoTempo
 let graficoDeputados
+let graficoFornecedores
 
 async function carregar(){
 
-const url="https://dadosabertos.camara.leg.br/api/v2/despesas?itens=150&ordem=DESC&ordenarPor=dataDocumento"
+const url="https://dadosabertos.camara.leg.br/api/v2/despesas?itens=200&ordem=DESC&ordenarPor=dataDocumento"
 
 const res=await fetch(url)
 const json=await res.json()
@@ -177,6 +183,7 @@ const fornecedoresDiv=document.getElementById("fornecedores")
 const scoreDiv=document.getElementById("score")
 const totalDiv=document.getElementById("total")
 const conexoesDiv=document.getElementById("conexoes")
+const cnpjDiv=document.getElementById("cnpjAnalise")
 
 tabela.innerHTML=""
 alertas.innerHTML=""
@@ -184,6 +191,7 @@ rankingDiv.innerHTML=""
 fornecedoresDiv.innerHTML=""
 scoreDiv.innerHTML=""
 conexoesDiv.innerHTML=""
+cnpjDiv.innerHTML=""
 
 const fornecedores={}
 const deputados={}
@@ -191,6 +199,7 @@ const categorias={}
 const risco={}
 const tempo={}
 const conexoes={}
+const cnpjs={}
 
 let total=0
 
@@ -235,33 +244,35 @@ if(!conexoes[g.nomeDeputado][g.nomeFornecedor]) conexoes[g.nomeDeputado][g.nomeF
 
 conexoes[g.nomeDeputado][g.nomeFornecedor]++
 
-// regras IA
+// cruzamento CNPJ
+
+const cnpj=g.cnpjCpfFornecedor
+
+if(!cnpjs[cnpj]) cnpjs[cnpj]=[]
+
+cnpjs[cnpj].push(g.nomeDeputado)
+
+// regras simples
 
 if(valor>10000){
 risco[g.nomeDeputado]+=2
-alertas.innerHTML+=`<p class="alerta">💰 gasto alto: ${g.nomeDeputado}</p>`
 }
 
 if(valor>20000){
 risco[g.nomeDeputado]+=4
 }
 
-if(valor>4900 && valor<5100){
-risco[g.nomeDeputado]+=1
-alertas.innerHTML+=`<p class="alerta">📄 valor perto de limite: ${g.nomeDeputado}</p>`
-}
-
 })
 
-// fornecedores repetidos
+Object.keys(cnpjs).forEach(cnpj=>{
 
-Object.keys(fornecedores).forEach(f=>{
+const deps=[...new Set(cnpjs[cnpj])]
 
-if(fornecedores[f]>6){
+if(deps.length>3){
 
 alertas.innerHTML+=`
 <p class="alerta">
-🏢 fornecedor muito usado: ${f}
+🚨 fornecedor recebendo de vários deputados: ${cnpj}
 </p>
 `
 
@@ -269,7 +280,7 @@ alertas.innerHTML+=`
 
 })
 
-// score
+// score risco
 
 Object.keys(risco).forEach(d=>{
 
@@ -294,7 +305,7 @@ ${d} — risco ${texto} (score ${risco[d]})
 
 })
 
-// ranking
+// ranking deputados
 
 const ranking=Object.entries(deputados)
 .sort((a,b)=>b[1]-a[1])
@@ -310,13 +321,14 @@ rankingDiv.innerHTML+=`
 
 // fornecedores top
 
-Object.keys(fornecedores)
-.sort((a,b)=>fornecedores[b]-fornecedores[a])
+const topFornecedores=Object.entries(fornecedores)
+.sort((a,b)=>b[1]-a[1])
 .slice(0,5)
-.forEach(f=>{
+
+topFornecedores.forEach(f=>{
 
 fornecedoresDiv.innerHTML+=`
-<p>${f} — ${fornecedores[f]} pagamentos</p>
+<p>${f[0]} — ${f[1]} pagamentos</p>
 `
 
 })
@@ -332,6 +344,18 @@ conexoesDiv.innerHTML+=`
 `
 
 })
+
+})
+
+// mostrar CNPJ com mais deputados
+
+Object.keys(cnpjs).slice(0,5).forEach(cnpj=>{
+
+const deps=[...new Set(cnpjs[cnpj])]
+
+cnpjDiv.innerHTML+=`
+<p>${cnpj} — ligado a ${deps.length} deputados</p>
+`
 
 })
 
@@ -384,6 +408,23 @@ labels:ranking.map(r=>r[0]),
 datasets:[{
 label:"Top gastos",
 data:ranking.map(r=>r[1])
+}]
+}
+})
+
+// gráfico fornecedores
+
+if(graficoFornecedores) graficoFornecedores.destroy()
+
+graficoFornecedores=new Chart(
+document.getElementById("graficoFornecedores"),
+{
+type:'bar',
+data:{
+labels:topFornecedores.map(f=>f[0]),
+datasets:[{
+label:"Pagamentos",
+data:topFornecedores.map(f=>f[1])
 }]
 }
 })
