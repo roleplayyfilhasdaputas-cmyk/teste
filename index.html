@@ -171,7 +171,6 @@ let deputados = [];
 let graficoDespesa, graficoValores;
 let deputadoSelecionadoId = null;
 
-// Carrega todos deputados com paginação da API
 async function carregarDeputados() {
   deputados = [];
   let pagina = 1;
@@ -181,20 +180,18 @@ async function carregarDeputados() {
       const res = await fetch(`https://dadosabertos.camara.leg.br/api/v2/deputados?itens=100&pagina=${pagina}`);
       const json = await res.json();
       deputados = deputados.concat(json.dados);
-      // Pega o total exato a partir do primeiro fetch
       if(pagina === 1) totalDeputados = json.metadados.totalRegistros || json.dados.length;
       if(json.dados.length === 0) break;
       pagina++;
     }
     popularListaDeputados(deputados);
-    // Seleciona automaticamente o primeiro deputado da lista
     if(deputados.length) {
       const primeiro = deputados[0];
       const li = [...document.querySelectorAll('#deputadosList li')].find(li => li.dataset.id == primeiro.id);
       if(li) {
         li.classList.add('active');
         deputadoSelecionadoId = primeiro.id;
-        carregarDespesas(primeiro.id, primeiro.nome);
+        carregarDespesasAnos(primeiro.id, primeiro.nome, 2023, 2026);
       }
     }
   } catch(e) {
@@ -219,7 +216,7 @@ function selecionarDeputado(id, nome, elementoLi) {
   document.querySelectorAll('#deputadosList li').forEach(li => li.classList.remove('active'));
   elementoLi.classList.add('active');
   document.getElementById('search').value = nome;
-  carregarDespesas(id, nome);
+  carregarDespesasAnos(id, nome, 2023, 2026);
 }
 
 document.getElementById('filtraDeputados').addEventListener('input', e => {
@@ -228,42 +225,29 @@ document.getElementById('filtraDeputados').addEventListener('input', e => {
   popularListaDeputados(filtered);
 });
 
-async function buscarDeputado() {
-  const nome = document.getElementById('search').value.trim();
-  if (!nome) { alert('Digite um deputado'); return; }
-  const dep = deputados.find(d => d.nome.toLowerCase() === nome.toLowerCase());
-  if(dep) {
-    const li = [...document.querySelectorAll('#deputadosList li')].find(li => li.dataset.id == dep.id);
-    if(li) li.scrollIntoView({behavior: 'smooth', block: 'center'});
-    selecionarDeputado(dep.id, dep.nome, li);
-  } else {
-    try {
-      const res = await fetch(`https://dadosabertos.camara.leg.br/api/v2/deputados?nome=${encodeURIComponent(nome)}`);
-      const json = await res.json();
-      if(!json.dados.length){ alert('Deputado não encontrado'); return; }
-      const deputado = json.dados[0];
-      deputados.push(deputado);
-      popularListaDeputados(deputados);
-      const li = [...document.querySelectorAll('#deputadosList li')].find(li => li.dataset.id == deputado.id);
-      if(li) li.scrollIntoView({behavior: 'smooth', block: 'center'});
-      selecionarDeputado(deputado.id, deputado.nome, li);
-    } catch(e) {
-      alert('Erro na busca: ' + e.message);
-    }
-  }
-}
-
-async function carregarDespesas(id, nome) {
+async function carregarDespesasAnos(id, nome, anoInicio, anoFim) {
   try {
-    const res = await fetch(`https://dadosabertos.camara.leg.br/api/v2/deputados/${id}/despesas?itens=100`);
-    const json = await res.json();
-    dados = json.dados.map(d => ({
-      deputado: nome,
-      tipo: d.tipoDespesa,
-      valor: parseFloat(d.valorLiquido),
-      fornecedor: d.nomeFornecedor,
-      data: d.dataDocumento
-    }));
+    dados = [];
+    document.getElementById('count').innerText = 'Carregando despesas...';
+    for(let ano = anoInicio; ano <= anoFim; ano++) {
+      let pagina = 1;
+      let total = 1;
+      while(dados.length < total) {
+        const res = await fetch(`https://dadosabertos.camara.leg.br/api/v2/deputados/${id}/despesas?ano=${ano}&itens=100&pagina=${pagina}`);
+        if(!res.ok) throw new Error(`Erro ao buscar despesas para o ano ${ano}: ${res.status}`);
+        const json = await res.json();
+        if(pagina === 1) total = json.metadados.totalRegistros || json.dados.length;
+        dados = dados.concat(json.dados.map(d => ({
+          deputado: nome,
+          tipo: d.tipoDespesa,
+          valor: parseFloat(d.valorLiquido),
+          fornecedor: d.nomeFornecedor,
+          data: d.dataDocumento
+        })));
+        if(json.dados.length === 0) break;
+        pagina++;
+      }
+    }
     renderTabela();
     ranking();
     pagamentosAltos();
@@ -271,7 +255,8 @@ async function carregarDespesas(id, nome) {
     graficoValores();
     document.getElementById('count').innerText = `${dados.length} registros carregados`;
   } catch (e) {
-    alert('Erro ao carregar despesas: ' + e.message);
+    document.getElementById('count').innerText = `Erro ao carregar despesas: ${e.message}`;
+    console.error(e);
   }
 }
 
@@ -368,17 +353,26 @@ function exportCSV() {
   a.click();
 }
 
-// Atualiza dados automaticamente a cada 30 minutos
+function buscarDeputado(){
+  const filtro = document.getElementById('search').value.toLowerCase();
+  const dep = deputados.find(d => d.nome.toLowerCase() === filtro);
+  if(dep) {
+    const li = [...document.querySelectorAll('#deputadosList li')].find(li => li.dataset.id == dep.id);
+    if(li) selecionarDeputado(dep.id, dep.nome, li);
+  } else {
+    alert('Deputado não encontrado');
+  }
+}
+
+// Atualiza dados a cada 30 minutos
 setInterval(() => {
   if(deputadoSelecionadoId) {
     const dep = deputados.find(d => d.id === deputadoSelecionadoId);
-    if(dep) carregarDespesas(deputadoSelecionadoId, dep.nome);
+    if(dep) carregarDespesasAnos(deputadoSelecionadoId, dep.nome, 2023, 2026);
   }
 }, 1800000);
 
-// Inicializa tudo
 carregarDeputados();
 </script>
-
 </body>
 </html>
