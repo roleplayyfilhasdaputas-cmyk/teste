@@ -1,9 +1,12 @@
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
 
 <meta charset="UTF-8">
-<title>Centro de Comando Global</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Portal do Biel</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
@@ -11,245 +14,222 @@
 
 body{
 margin:0;
-background:#050b10;
-color:white;
 font-family:Arial;
+background:#0b0b0b;
+color:white;
 }
 
 header{
-background:#0f1419;
-padding:15px;
-font-size:24px;
-border-bottom:2px solid red;
-}
-
-#map{
-height:92vh;
-}
-
-.painel{
-position:absolute;
-top:80px;
-left:10px;
-background:#111;
-padding:15px;
-width:260px;
-border:1px solid red;
-}
-
-.alerta{
-color:red;
+background:#c4170c;
+padding:20px;
+font-size:26px;
 font-weight:bold;
-animation:piscando 1s infinite;
 }
 
-@keyframes piscando{
-0%{opacity:1}
-50%{opacity:0}
-100%{opacity:1}
+nav{
+background:#111;
+padding:12px;
+display:flex;
+gap:18px;
+flex-wrap:wrap;
 }
 
-.sistema{
-margin-top:15px;
-background:#000;
-padding:10px;
-border:1px solid lime;
-font-size:14px;
+nav a{
+color:white;
+text-decoration:none;
+font-weight:bold;
+cursor:pointer;
 }
 
-.radar{
-position:absolute;
-bottom:20px;
-right:20px;
-width:130px;
-height:130px;
-border:2px solid lime;
-border-radius:50%;
+nav a:hover{
+color:#ff4444;
 }
 
-.radar::after{
-content:"";
-position:absolute;
-width:2px;
-height:65px;
-background:lime;
-top:0;
-left:50%;
-transform-origin:bottom;
-animation:radar 2s linear infinite;
+#conteudo{
+height:90vh;
 }
 
-@keyframes radar{
-0%{transform:rotate(0deg)}
-100%{transform:rotate(360deg)}
+iframe{
+width:100%;
+height:100%;
+border:none;
+}
+
+.feed{
+padding:20px;
+}
+
+.news{
+display:flex;
+gap:10px;
+margin-bottom:15px;
+border-left:3px solid red;
+padding-left:10px;
+}
+
+.news img{
+width:120px;
+height:80px;
+object-fit:cover;
+}
+
+#mapaBases{
+height:100%;
 }
 
 </style>
+
 </head>
 
 <body>
 
 <header>
-🌍 CENTRO DE COMANDO GLOBAL
+🌍 PORTAL DO BIEL
 </header>
 
-<div id="map"></div>
+<nav>
 
-<div class="painel">
+<a onclick="aviComercial()">✈️ Aviões Comerciais</a>
 
-<h3>🔴 Alertas de Conflito</h3>
+<a onclick="aviMilitar()">🛩 Aviões Militares</a>
 
-<div class="alerta">Ucrânia</div>
-<div class="alerta">Gaza</div>
-<div class="alerta">Síria</div>
-<div class="alerta">Mar da China</div>
-<div class="alerta">Coreia</div>
+<a onclick="aviTodos()">🛫 Todos Aviões</a>
 
-<div class="sistema">
+<a onclick="navios()">🚢 Navios / Porta-aviões</a>
 
-<b>Sistema B</b>
+<a onclick="bases()">🪖 Bases Militares</a>
 
-<div id="analise">
-Inicializando sistema...
+<a onclick="conflitos()">🌍 Conflitos</a>
+
+<a onclick="foguetes()">🚀 Lançamentos</a>
+
+<a onclick="noticias()">📰 Notícias</a>
+
+</nav>
+
+<div id="conteudo">
+
+<div class="feed">
+<h2>Painel Global</h2>
+<p>Escolha uma ferramenta acima.</p>
 </div>
 
 </div>
-
-</div>
-
-<div class="radar"></div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
 
-var map = L.map('map').setView([20,0],2);
+function aviComercial(){
+conteudo.innerHTML =
+`<iframe src="https://globe.adsbexchange.com/?filterType=1"></iframe>`;
+}
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-maxZoom:6
-}).addTo(map);
+function aviMilitar(){
+conteudo.innerHTML =
+`<iframe src="https://globe.adsbexchange.com/?mil"></iframe>`;
+}
 
+function aviTodos(){
+conteudo.innerHTML =
+`<iframe src="https://globe.adsbexchange.com/"></iframe>`;
+}
 
-function add(lista,cor){
+function navios(){
+conteudo.innerHTML =
+`<iframe src="https://www.marinetraffic.com/en/ais/embed/zoom:2/centery:20/centerx:0/maptype:4/shownames:true/shiptypes:8"></iframe>`;
+}
 
-lista.forEach(function(b){
+function conflitos(){
+conteudo.innerHTML =
+`<iframe src="https://liveuamap.com/"></iframe>`;
+}
 
-L.circleMarker([b[0],b[1]],{
-color:cor,
-radius:7
-}).addTo(map).bindPopup(b[2]);
+function bases(){
+
+conteudo.innerHTML = `<div id="mapaBases"></div>`;
+
+setTimeout(()=>{
+
+var map = L.map('mapaBases').setView([30,0],2);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+L.marker([36.0,-115.0]).addTo(map)
+.bindPopup("🇺🇸 Base Nellis (EUA)");
+
+L.marker([34.7,33.0]).addTo(map)
+.bindPopup("🇬🇧 Base Akrotiri (Reino Unido)");
+
+L.marker([35.4,139.4]).addTo(map)
+.bindPopup("🇯🇵 Base Yokosuka (Japão)");
+
+L.marker([25.2,55.3]).addTo(map)
+.bindPopup("🇺🇸 Base Al Dhafra (EAU)");
+
+L.marker([52.3,13.5]).addTo(map)
+.bindPopup("🇩🇪 Base OTAN Alemanha");
+
+},100);
+
+}
+
+async function foguetes(){
+
+let res = await fetch("https://ll.thespacedevs.com/2.2.0/launch/upcoming/?limit=5");
+
+let data = await res.json();
+
+let html="<div class='feed'><h2>🚀 Lançamentos Espaciais</h2>";
+
+data.results.forEach(l => {
+
+html += `
+<div style="margin-bottom:15px;border-left:3px solid red;padding-left:10px">
+🚀 ${l.name}<br>
+📅 ${l.net}
+</div>
+`;
 
 });
 
-}
+html += "</div>";
 
-
-// bases aéreas
-add([
-[38.87,-77.06,"✈ Base Aérea EUA"],
-[51.47,-0.45,"✈ Base RAF UK"],
-[35.55,139.78,"✈ Base Japão"],
-[48.35,11.79,"✈ Base Alemanha"]
-],"cyan");
-
-
-// bases navais
-add([
-[36.97,-76.33,"⚓ Base Naval Norfolk"],
-[34.70,135.20,"⚓ Base Naval Japão"],
-[31.23,121.47,"⚓ Base Naval China"]
-],"blue");
-
-
-// bases terrestres
-add([
-[55.75,37.61,"🪖 Base Exército Rússia"],
-[39.90,116.40,"🪖 Base China"],
-[33.92,-117.88,"🪖 Base EUA"]
-],"green");
-
-
-// nucleares
-add([
-[40.18,44.51,"☢ Base Nuclear Rússia"],
-[34.73,-86.58,"☢ Base Nuclear EUA"],
-[31.90,35.20,"☢ Base Nuclear Israel"]
-],"yellow");
-
-
-// satélites
-add([
-[0,-30,"🛰 Satélite Militar"],
-[10,60,"🛰 Satélite Espião"],
-[-5,120,"🛰 Satélite Militar"]
-],"white");
-
-
-// drones
-add([
-[25,55,"✈ Drone Militar"],
-[30,40,"✈ Drone Vigilância"],
-[20,75,"✈ Drone Ataque"]
-],"pink");
-
-
-// porta-aviões
-add([
-[20,-150,"🚢 Porta-Aviões EUA"],
-[15,130,"🚢 Porta-Aviões China"],
-[10,60,"🚢 Porta-Aviões Índia"]
-],"purple");
-
-
-// submarinos
-add([
-[-10,-40,"🤿 Submarino Nuclear"],
-[5,80,"🤿 Submarino Rússia"],
-[30,140,"🤿 Submarino Pacífico"]
-],"orange");
-
-
-// conflitos
-add([
-[49,31,"🔴 Guerra Ucrânia"],
-[31,34,"🔴 Gaza"],
-[35,38,"🔴 Síria"],
-[15,115,"🔴 Mar da China"],
-[39,127,"🔴 Coreia"]
-],"red");
-
-
-
-// SISTEMA B
-
-var conflitos = [
-"Ucrânia",
-"Gaza",
-"Síria",
-"Mar da China",
-"Coreia"
-];
-
-var risco = [
-"BAIXO",
-"MÉDIO",
-"ALTO",
-"CRÍTICO"
-];
-
-function sistemaB(){
-
-var conflito = conflitos[Math.floor(Math.random()*conflitos.length)];
-var nivel = risco[Math.floor(Math.random()*risco.length)];
-
-document.getElementById("analise").innerHTML =
-"Conflito analisado: "+conflito+"<br>"+
-"Nível de risco: "+nivel+"<br>"+
-"Atualização: "+new Date().toLocaleTimeString();
+conteudo.innerHTML = html;
 
 }
 
-setInterval(sistemaB,4000);
+async function noticias(){
+
+let url="https://api.rss2json.com/v1/api.json?rss_url=https://news.google.com/rss?hl=pt-BR&gl=BR&ceid=BR:pt";
+
+let res=await fetch(url);
+let data=await res.json();
+
+let html="<div class='feed'><h2>📰 Notícias</h2>";
+
+data.items.slice(0,12).forEach(n=>{
+
+html+=`
+<div class="news">
+
+<img src="${n.thumbnail || 'https://via.placeholder.com/120'}">
+
+<div>
+<b>${n.title}</b><br>
+<a href="${n.link}" target="_blank" style="color:#ff4444">Abrir notícia</a>
+</div>
+
+</div>
+`;
+
+});
+
+html+="</div>";
+
+conteudo.innerHTML=html;
+
+}
 
 </script>
 
