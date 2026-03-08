@@ -1,351 +1,286 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-<meta charset="UTF-8">
-<title>Painel Investigativo de Gastos Públicos</title>
-
+<meta charset="UTF-8" />
+<title>Painel Investigativo de Gastos Públicos - Atualização Automática</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <style>
-
-body{
-background:#0b0b0b;
-color:white;
-font-family:Arial;
-margin:0;
-}
-
-header{
-background:#c40000;
-padding:20px;
-font-size:24px;
-font-weight:bold;
-}
-
-.container{
-padding:20px;
-}
-
-.search{
-display:flex;
-gap:10px;
-margin-bottom:20px;
-}
-
-input{
-padding:10px;
-border-radius:6px;
-border:none;
-width:260px;
-}
-
-button{
-background:#c40000;
-border:none;
-color:white;
-padding:10px 15px;
-border-radius:6px;
-cursor:pointer;
-}
-
-.grid{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:20px;
-}
-
-.card{
-background:#141414;
-padding:20px;
-border-radius:10px;
-}
-
-canvas{
-background:#0f0f0f;
-border-radius:10px;
-padding:10px;
-}
-
-table{
-width:100%;
-border-collapse:collapse;
-margin-top:20px;
-}
-
-th,td{
-padding:10px;
-border-bottom:1px solid #333;
-text-align:left;
-}
-
-th{
-color:#ccc;
-}
-
+  body {
+    background:#0b0b0b;
+    color:white;
+    font-family:Arial, sans-serif;
+    margin:0;
+  }
+  header {
+    background:#c40000;
+    padding:20px;
+    font-size:24px;
+    font-weight:bold;
+  }
+  .container {
+    padding:20px;
+  }
+  .search {
+    display:flex;
+    gap:10px;
+    margin-bottom:20px;
+  }
+  input {
+    padding:10px;
+    border-radius:6px;
+    border:none;
+    width:260px;
+  }
+  button {
+    background:#c40000;
+    border:none;
+    color:white;
+    padding:10px 15px;
+    border-radius:6px;
+    cursor:pointer;
+  }
+  .grid {
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+  }
+  .card {
+    background:#141414;
+    padding:20px;
+    border-radius:10px;
+  }
+  canvas {
+    background:#0f0f0f;
+    border-radius:10px;
+    padding:10px;
+  }
+  table {
+    width:100%;
+    border-collapse:collapse;
+    margin-top:20px;
+  }
+  th, td {
+    padding:10px;
+    border-bottom:1px solid #333;
+    text-align:left;
+  }
+  th {
+    color:#ccc;
+  }
 </style>
 </head>
-
 <body>
-
-<header>Painel Investigativo de Gastos Públicos</header>
+<header>Painel Investigativo de Gastos Públicos - Atualização Automática</header>
 
 <div class="container">
-
-<div class="search">
-
-<input id="search" placeholder="Buscar deputado">
-
-<button onclick="buscarDeputado()">Buscar</button>
-
-<button onclick="exportCSV()">Exportar CSV</button>
-
-</div>
-
-<div id="count"></div>
-
-<div class="grid">
-
-<div class="card">
-<h3>Ranking de gastos</h3>
-<ul id="ranking"></ul>
-</div>
-
-<div class="card">
-<h3>Pagamentos altos detectados</h3>
-<ul id="altos"></ul>
-</div>
-
-<div class="card">
-<h3>Distribuição de despesas</h3>
-<canvas id="graficoDespesa"></canvas>
-</div>
-
-<div class="card">
-<h3>Top gastos</h3>
-<canvas id="graficoValores"></canvas>
-</div>
-
-</div>
-
-<div class="card" style="margin-top:20px">
-
-<h3>Despesas</h3>
-
-<table id="tabela">
-
-<thead>
-<tr>
-<th>Deputado</th>
-<th>Tipo</th>
-<th>Valor</th>
-<th>Fornecedor</th>
-<th>Data</th>
-</tr>
-</thead>
-
-<tbody></tbody>
-
-</table>
-
-</div>
-
+  <div class="search">
+    <input id="search" placeholder="Buscar deputado" />
+    <button onclick="buscarDeputado()">Buscar</button>
+    <button onclick="exportCSV()">Exportar CSV</button>
+  </div>
+  <div id="count"></div>
+  <div class="grid">
+    <div class="card">
+      <h3>Ranking de gastos por tipo</h3>
+      <ul id="ranking"></ul>
+    </div>
+    <div class="card">
+      <h3>Pagamentos altos detectados</h3>
+      <ul id="altos"></ul>
+    </div>
+    <div class="card">
+      <h3>Distribuição de despesas</h3>
+      <canvas id="graficoDespesa"></canvas>
+    </div>
+    <div class="card">
+      <h3>Top gastos</h3>
+      <canvas id="graficoValores"></canvas>
+    </div>
+  </div>
+  <div class="card" style="margin-top:20px">
+    <h3>Despesas</h3>
+    <table id="tabela">
+      <thead>
+        <tr>
+          <th>Deputado</th>
+          <th>Tipo</th>
+          <th>Valor</th>
+          <th>Fornecedor</th>
+          <th>Data</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 </div>
 
 <script>
+let dados = [];
+let graficoDespesa, graficoValores;
 
-let dados=[]
-
-async function buscarDeputado(){
-
-let nome=document.getElementById("search").value
-
-let res=await fetch("https://dadosabertos.camara.leg.br/api/v2/deputados?nome="+nome)
-
-let json=await res.json()
-
-if(!json.dados.length){
-alert("Deputado não encontrado")
-return
+async function buscarDeputado() {
+  const nome = document.getElementById("search").value.trim();
+  if (!nome) {
+    alert("Por favor, digite o nome do deputado.");
+    return;
+  }
+  try {
+    const res = await fetch(`https://dadosabertos.camara.leg.br/api/v2/deputados?nome=${encodeURIComponent(nome)}`);
+    const json = await res.json();
+    if (!json.dados.length) {
+      alert("Deputado não encontrado");
+      return;
+    }
+    const deputado = json.dados[0];
+    carregarDespesas(deputado.id, deputado.nome);
+  } catch (e) {
+    alert("Erro ao buscar deputado: " + e.message);
+  }
 }
 
-let id=json.dados[0].id
-
-buscarDespesas(id,json.dados[0].nome)
-
+async function carregarDespesas(id, nome) {
+  try {
+    // API limita a 100 itens por página, buscar só uma página (melhorar paginacao se quiser)
+    const res = await fetch(`https://dadosabertos.camara.leg.br/api/v2/deputados/${id}/despesas?itens=100`);
+    const json = await res.json();
+    dados = json.dados.map(d => ({
+      deputado: nome,
+      tipo: d.tipoDespesa,
+      valor: d.valorLiquido,
+      fornecedor: d.nomeFornecedor,
+      data: d.dataDocumento
+    }));
+    renderTabela();
+    ranking();
+    pagamentosAltos();
+    graficoDespesas();
+    graficoValores();
+    document.getElementById("count").innerText = `${dados.length} registros carregados`;
+  } catch (e) {
+    alert("Erro ao carregar despesas: " + e.message);
+  }
 }
 
-async function buscarDespesas(id,nome){
-
-let res=await fetch("https://dadosabertos.camara.leg.br/api/v2/deputados/"+id+"/despesas?itens=100")
-
-let json=await res.json()
-
-dados=json.dados.map(d=>({
-
-deputado:nome,
-tipo:d.tipoDespesa,
-valor:d.valorLiquido,
-fornecedor:d.nomeFornecedor,
-data:d.dataDocumento
-
-}))
-
-renderTabela()
-ranking()
-pagamentosAltos()
-graficoDespesas()
-graficoValores()
-
+function renderTabela() {
+  const tbody = document.querySelector("#tabela tbody");
+  tbody.innerHTML = "";
+  dados.forEach(d => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${d.deputado}</td>
+      <td>${d.tipo}</td>
+      <td>R$ ${d.valor.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+      <td>${d.fornecedor}</td>
+      <td>${d.data}</td>
+    `;
+    tbody.appendChild(tr);
+  });
 }
 
-function renderTabela(){
-
-let tbody=document.querySelector("#tabela tbody")
-
-tbody.innerHTML=""
-
-dados.forEach(d=>{
-
-let tr=document.createElement("tr")
-
-tr.innerHTML=`
-
-<td>${d.deputado}</td>
-<td>${d.tipo}</td>
-<td>R$ ${d.valor}</td>
-<td>${d.fornecedor}</td>
-<td>${d.data}</td>
-
-`
-
-tbody.appendChild(tr)
-
-})
-
-document.getElementById("count").innerText=dados.length+" registros carregados"
-
+function ranking() {
+  const mapa = {};
+  dados.forEach(d => {
+    mapa[d.tipo] = (mapa[d.tipo] || 0) + d.valor;
+  });
+  const lista = Object.entries(mapa).sort((a, b) => b[1] - a[1]);
+  const ul = document.getElementById("ranking");
+  ul.innerHTML = "";
+  lista.forEach(([tipo, valor]) => {
+    const li = document.createElement("li");
+    li.innerText = `${tipo} - R$ ${valor.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+    ul.appendChild(li);
+  });
 }
 
-function ranking(){
-
-let mapa={}
-
-dados.forEach(d=>{
-mapa[d.tipo]=(mapa[d.tipo]||0)+d.valor
-})
-
-let lista=Object.entries(mapa).sort((a,b)=>b[1]-a[1])
-
-let ul=document.getElementById("ranking")
-
-ul.innerHTML=""
-
-lista.forEach(r=>{
-
-let li=document.createElement("li")
-
-li.innerText=r[0]+" - R$ "+Math.round(r[1])
-
-ul.appendChild(li)
-
-})
-
+function pagamentosAltos() {
+  const ul = document.getElementById("altos");
+  ul.innerHTML = "";
+  dados.filter(d => d.valor > 10000).forEach(d => {
+    const li = document.createElement("li");
+    li.innerText = `${d.tipo} - R$ ${d.valor.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+    ul.appendChild(li);
+  });
 }
 
-function pagamentosAltos(){
-
-let ul=document.getElementById("altos")
-
-ul.innerHTML=""
-
-dados.filter(d=>d.valor>10000).forEach(d=>{
-
-let li=document.createElement("li")
-
-li.innerText=d.tipo+" - R$ "+d.valor
-
-ul.appendChild(li)
-
-})
-
+function graficoDespesas() {
+  const mapa = {};
+  dados.forEach(d => {
+    mapa[d.tipo] = (mapa[d.tipo] || 0) + d.valor;
+  });
+  if (graficoDespesa) graficoDespesa.destroy();
+  graficoDespesa = new Chart(document.getElementById("graficoDespesa"), {
+    type: "pie",
+    data: {
+      labels: Object.keys(mapa),
+      datasets: [{
+        data: Object.values(mapa),
+        backgroundColor: [
+          '#c40000', '#ff5733', '#ff8d1a', '#ffc300', '#d4ff00', '#aaff00',
+          '#5aff00', '#00ff55', '#00ffd4', '#00aaff', '#0040ff', '#5500ff'
+        ]
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: { color: 'white' }
+        }
+      }
+    }
+  });
 }
 
-function graficoDespesas(){
-
-let mapa={}
-
-dados.forEach(d=>{
-mapa[d.tipo]=(mapa[d.tipo]||0)+d.valor
-})
-
-new Chart(document.getElementById("graficoDespesa"),{
-
-type:"pie",
-
-data:{
-labels:Object.keys(mapa),
-
-datasets:[{
-
-data:Object.values(mapa)
-
-}]
-
+function graficoValores() {
+  if (graficoValores) graficoValores.destroy();
+  const top = dados
+    .slice()
+    .sort((a, b) => b.valor - a.valor)
+    .slice(0, 5);
+  graficoValores = new Chart(document.getElementById("graficoValores"), {
+    type: "bar",
+    data: {
+      labels: top.map(d => d.tipo),
+      datasets: [{
+        label: "Valor",
+        data: top.map(d => d.valor),
+        backgroundColor: '#c40000'
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: { beginAtZero: true, ticks: { color: 'white' } },
+        x: { ticks: { color: 'white' } }
+      },
+      plugins: {
+        legend: { display: false }
+      }
+    }
+  });
 }
 
-})
-
+function exportCSV() {
+  let csv = "Deputado,Tipo,Valor,Fornecedor,Data\n";
+  dados.forEach(d => {
+    csv += `"${d.deputado}","${d.tipo}","${d.valor.toFixed(2)}","${d.fornecedor}","${d.data}"\n`;
+  });
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "gastos_deputado.csv";
+  a.click();
 }
 
-function graficoValores(){
-
-let top=dados
-.sort((a,b)=>b.valor-a.valor)
-.slice(0,5)
-
-new Chart(document.getElementById("graficoValores"),{
-
-type:"bar",
-
-data:{
-
-labels:top.map(d=>d.tipo),
-
-datasets:[{
-
-label:"Valor",
-
-data:top.map(d=>d.valor)
-
-}]
-
-}
-
-})
-
-}
-
-function exportCSV(){
-
-let csv="Deputado,Tipo,Valor,Fornecedor,Data\n"
-
-dados.forEach(d=>{
-csv+=`${d.deputado},${d.tipo},${d.valor},${d.fornecedor},${d.data}\n`
-})
-
-let blob=new Blob([csv])
-
-let a=document.createElement("a")
-
-a.href=URL.createObjectURL(blob)
-
-a.download="gastos_deputado.csv"
-
-a.click()
-
-}
+// Atualiza dados automaticamente a cada 30 minutos
+setInterval(() => {
+  const nome = document.getElementById("search").value.trim();
+  if (nome) {
+    buscarDeputado();
+  }
+}, 1800000);
 
 </script>
-
 </body>
 </html>
