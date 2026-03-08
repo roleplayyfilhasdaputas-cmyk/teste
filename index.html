@@ -3,7 +3,7 @@
 
 <head>
 <meta charset="UTF-8">
-<title>Radar Investigativo de Gastos</title>
+<title>Radar Investigativo de Gastos Públicos</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -25,24 +25,25 @@ font-weight:bold;
 
 .container{
 padding:20px;
+max-width:1400px;
+margin:auto;
 }
 
 input{
 padding:10px;
-width:350px;
-margin-bottom:10px;
+width:300px;
 border-radius:6px;
 border:none;
 }
 
 button{
 padding:10px;
-margin-left:10px;
 border:none;
 border-radius:6px;
 background:#c4170c;
 color:white;
 cursor:pointer;
+margin-left:10px;
 }
 
 .card{
@@ -52,13 +53,20 @@ margin-bottom:20px;
 border-radius:10px;
 }
 
+.grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:20px;
+}
+
 table{
 width:100%;
 border-collapse:collapse;
+font-size:14px;
 }
 
 th,td{
-padding:10px;
+padding:8px;
 border-bottom:1px solid #333;
 }
 
@@ -74,8 +82,12 @@ border-radius:10px;
 
 .loading{
 color:#aaa;
-font-size:14px;
 margin-bottom:10px;
+}
+
+.alerta{
+color:#ff6b6b;
+font-weight:bold;
 }
 
 </style>
@@ -95,10 +107,21 @@ Radar Investigativo de Gastos Públicos
 
 <div class="loading" id="status">Carregando dados...</div>
 
+<div class="grid">
+
 <div class="card">
 <h3>Ranking de gastos</h3>
 <div id="ranking"></div>
 </div>
+
+<div class="card">
+<h3>Ranking por partido</h3>
+<div id="partidos"></div>
+</div>
+
+</div>
+
+<div class="grid">
 
 <div class="card">
 <h3>Fornecedores mais usados</h3>
@@ -110,9 +133,25 @@ Radar Investigativo de Gastos Públicos
 <div id="cnpjs"></div>
 </div>
 
+</div>
+
+<div class="card">
+<h3>Pagamentos altos detectados</h3>
+<div id="alertas"></div>
+</div>
+
+<div class="grid">
+
 <div class="card">
 <h3>Distribuição de despesas</h3>
-<canvas id="grafico"></canvas>
+<canvas id="graficoCategorias"></canvas>
+</div>
+
+<div class="card">
+<h3>Top deputados</h3>
+<canvas id="graficoDeputados"></canvas>
+</div>
+
 </div>
 
 <div class="card">
@@ -124,6 +163,7 @@ Radar Investigativo de Gastos Públicos
 <thead>
 <tr>
 <th>Deputado</th>
+<th>Partido</th>
 <th>Despesa</th>
 <th>Valor</th>
 <th>Fornecedor</th>
@@ -141,7 +181,8 @@ Radar Investigativo de Gastos Públicos
 
 <script>
 
-let grafico
+let graficoCategorias
+let graficoDeputados
 let dadosCSV=[]
 
 async function buscarAno(ano){
@@ -165,7 +206,9 @@ if(json.dados.length<100) break
 pagina++
 
 }catch(e){
+
 break
+
 }
 
 }
@@ -180,22 +223,20 @@ const tabela=document.getElementById("tabela")
 const rankingDiv=document.getElementById("ranking")
 const fornecedoresDiv=document.getElementById("fornecedores")
 const cnpjDiv=document.getElementById("cnpjs")
+const partidosDiv=document.getElementById("partidos")
+const alertasDiv=document.getElementById("alertas")
 const status=document.getElementById("status")
-
-tabela.innerHTML=""
-rankingDiv.innerHTML=""
-fornecedoresDiv.innerHTML=""
-cnpjDiv.innerHTML=""
 
 const deputados={}
 const fornecedores={}
 const categorias={}
 const cnpjs={}
+const partidos={}
+
+let totalGeral=0
+let todosDados=[]
 
 const anoAtual=new Date().getFullYear()
-
-let todosDados=[]
-let totalGeral=0
 
 for(let ano=2020;ano<=anoAtual;ano++){
 
@@ -212,10 +253,12 @@ status.innerText=`${todosDados.length} registros carregados`
 todosDados.forEach(g=>{
 
 const valor=parseFloat(g.valorLiquido) || 0
+
 totalGeral+=valor
 
 dadosCSV.push([
 g.nomeDeputado,
+g.siglaPartido,
 g.tipoDespesa,
 valor,
 g.nomeFornecedor,
@@ -225,11 +268,12 @@ g.dataDocumento
 const linha=document.createElement("tr")
 
 linha.innerHTML=`
-<td>${g.nomeDeputado || "-"}</td>
-<td>${g.tipoDespesa || "-"}</td>
+<td>${g.nomeDeputado}</td>
+<td>${g.siglaPartido}</td>
+<td>${g.tipoDespesa}</td>
 <td>R$ ${valor.toLocaleString()}</td>
-<td>${g.nomeFornecedor || "-"}</td>
-<td>${g.dataDocumento || "-"}</td>
+<td>${g.nomeFornecedor}</td>
+<td>${g.dataDocumento}</td>
 `
 
 tabela.appendChild(linha)
@@ -243,19 +287,32 @@ fornecedores[g.nomeFornecedor]++
 if(!categorias[g.tipoDespesa]) categorias[g.tipoDespesa]=0
 categorias[g.tipoDespesa]+=valor
 
-const cnpj=g.cnpjCpfFornecedor || "Desconhecido"
+if(!partidos[g.siglaPartido]) partidos[g.siglaPartido]=0
+partidos[g.siglaPartido]+=valor
+
+const cnpj=g.cnpjCpfFornecedor || "desconhecido"
 
 if(!cnpjs[cnpj]) cnpjs[cnpj]=[]
 
 cnpjs[cnpj].push(g.nomeDeputado)
 
+if(valor>50000){
+
+alertasDiv.innerHTML+=`
+<p class="alerta">
+${g.nomeDeputado} pagou R$ ${valor.toLocaleString()} para ${g.nomeFornecedor}
+</p>
+`
+
+}
+
 })
 
-rankingDiv.innerHTML+=`<p><b>Total analisado:</b> R$ ${Math.round(totalGeral).toLocaleString()}</p>`
+rankingDiv.innerHTML=`<p><b>Total analisado:</b> R$ ${Math.round(totalGeral).toLocaleString()}</p>`
 
 Object.entries(deputados)
 .sort((a,b)=>b[1]-a[1])
-.slice(0,5)
+.slice(0,10)
 .forEach(r=>{
 
 rankingDiv.innerHTML+=`
@@ -264,9 +321,20 @@ rankingDiv.innerHTML+=`
 
 })
 
+Object.entries(partidos)
+.sort((a,b)=>b[1]-a[1])
+.slice(0,10)
+.forEach(p=>{
+
+partidosDiv.innerHTML+=`
+<p>${p[0]} — R$ ${Math.round(p[1]).toLocaleString()}</p>
+`
+
+})
+
 Object.entries(fornecedores)
 .sort((a,b)=>b[1]-a[1])
-.slice(0,5)
+.slice(0,10)
 .forEach(f=>{
 
 fornecedoresDiv.innerHTML+=`
@@ -279,7 +347,7 @@ Object.keys(cnpjs).forEach(c=>{
 
 const deps=[...new Set(cnpjs[c])]
 
-if(deps.length>4){
+if(deps.length>6){
 
 cnpjDiv.innerHTML+=`
 <p>${c} — ligado a ${deps.length} deputados</p>
@@ -289,33 +357,52 @@ cnpjDiv.innerHTML+=`
 
 })
 
-if(grafico) grafico.destroy()
+criarGraficos(deputados,categorias)
 
-grafico=new Chart(
-document.getElementById("grafico"),
+}
+
+function criarGraficos(deputados,categorias){
+
+if(graficoCategorias) graficoCategorias.destroy()
+if(graficoDeputados) graficoDeputados.destroy()
+
+graficoCategorias=new Chart(
+document.getElementById("graficoCategorias"),
 {
-type:'bar',
+type:"bar",
 data:{
 labels:Object.keys(categorias),
 datasets:[{
-label:"Total gasto (R$)",
 data:Object.values(categorias),
 backgroundColor:"#c4170c"
 }]
 },
-options:{
-responsive:true,
-plugins:{
-legend:{display:false}
-}
-}
+options:{plugins:{legend:{display:false}}}
+})
+
+const top=Object.entries(deputados)
+.sort((a,b)=>b[1]-a[1])
+.slice(0,10)
+
+graficoDeputados=new Chart(
+document.getElementById("graficoDeputados"),
+{
+type:"bar",
+data:{
+labels:top.map(d=>d[0]),
+datasets:[{
+data:top.map(d=>d[1]),
+backgroundColor:"#ff6b6b"
+}]
+},
+options:{plugins:{legend:{display:false}}}
 })
 
 }
 
 function exportarCSV(){
 
-let csv="Deputado,Despesa,Valor,Fornecedor,Data\n"
+let csv="Deputado,Partido,Despesa,Valor,Fornecedor,Data\n"
 
 dadosCSV.forEach(l=>{
 
