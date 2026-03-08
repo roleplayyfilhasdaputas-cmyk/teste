@@ -2,40 +2,275 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<title>Painel Investigativo de Gastos 2023-2026</title>
-<link rel="stylesheet" href="css/style.css" />
+<title>Radar Investigativo de Gastos</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="js/app.js" defer></script>
+<style>
+body {
+  margin:0;
+  font-family: Arial;
+  background: #0b0b0b;
+  color:white;
+  display: flex;
+  height: 100vh;
+}
+aside {
+  width: 250px;
+  background:#161616;
+  padding:20px;
+  overflow-y: auto;
+}
+aside h3 {
+  margin-top:0;
+  margin-bottom:10px;
+  font-size:20px;
+  color:#c4170c;
+}
+aside ul {
+  list-style:none;
+  padding:0;
+  margin:0;
+}
+aside ul li {
+  padding:8px;
+  cursor:pointer;
+  border-bottom:1px solid #333;
+}
+aside ul li.active {
+  background:#c4170c;
+}
+main {
+  flex:1;
+  padding:20px;
+  overflow-y: auto;
+}
+header {
+  background:#c4170c;
+  padding:20px;
+  font-size:28px;
+  font-weight:bold;
+  margin-bottom:20px;
+}
+table {
+  width:100%;
+  border-collapse:collapse;
+  margin-top:10px;
+}
+th, td {
+  padding:10px;
+  border-bottom:1px solid #333;
+}
+th {
+  background:#1f1f1f;
+}
+canvas {
+  background:#111;
+  padding:10px;
+  border-radius:10px;
+  margin-top:20px;
+}
+input {
+  padding:10px;
+  width:100%;
+  margin-bottom:20px;
+  border-radius:6px;
+  border:none;
+}
+button {
+  padding:10px 15px;
+  border:none;
+  border-radius:5px;
+  background:#c4170c;
+  color:white;
+  cursor:pointer;
+  margin-bottom:20px;
+}
+</style>
 </head>
 <body>
-<header>Painel Investigativo de Gastos 2023-2026</header>
-<div id="listaDeputados">
-<h3>Deputados</h3>
-<input type="text" id="filtraDeputados" placeholder="Filtrar deputados..." autocomplete="off" />
-<ul id="deputadosList"></ul>
-</div>
-<div id="conteudo">
-<div class="searchExport">
-<input id="search" placeholder="Buscar deputado" autocomplete="off" />
-<button onclick="buscarDeputado()">Buscar</button>
-<button onclick="exportCSV()">Exportar CSV</button>
-</div>
-<div id="count"></div>
-<div class="grid">
-<div class="card"><h3>Ranking de gastos por tipo</h3><ul id="ranking"></ul></div>
-<div class="card"><h3>Pagamentos altos detectados</h3><ul id="altos"></ul></div>
-<div class="card"><h3>Distribuição de despesas</h3><canvas id="graficoDespesa"></canvas></div>
-<div class="card"><h3>Top gastos</h3><canvas id="graficoValores"></canvas></div>
-</div>
-<div class="card" style="margin-top:20px;">
-<h3>Despesas</h3>
-<table id="tabela">
-<thead>
-<tr><th>Deputado</th><th>Tipo</th><th>Valor</th><th>Fornecedor</th><th>Data</th></tr>
-</thead>
-<tbody></tbody>
-</table>
-</div>
-</div>
+<aside>
+  <h3>Deputados</h3>
+  <input type="text" id="search" placeholder="Buscar deputado">
+  <button onclick="buscarDeputado()">Buscar</button>
+  <ul id="deputadosList"></ul>
+  <p id="count">Carregando...</p>
+</aside>
+<main>
+  <header>Radar Investigativo de Gastos Públicos</header>
+  
+  <div class="card">
+    <h3>Ranking de despesas por tipo</h3>
+    <ul id="ranking"></ul>
+  </div>
+
+  <div class="card">
+    <h3>Despesas</h3>
+    <table id="tabela">
+      <thead>
+        <tr>
+          <th>Deputado</th>
+          <th>Despesa</th>
+          <th>Valor</th>
+          <th>Fornecedor</th>
+          <th>Data</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <canvas id="graficoDespesa" width="400" height="200"></canvas>
+  <canvas id="graficoValores" width="400" height="200"></canvas>
+
+  <button onclick="exportCSV()">Exportar CSV</button>
+</main>
+
+<script>
+// Script funcional que carrega despesas globais e filtra por deputado
+let dados = [];
+let deputadoSelecionado = null;
+let graficoDespesa, graficoValores;
+
+const deputadosLista = [
+  { nome: "Alexandre Frota" },
+  { nome: "Luiz Inácio Lula da Silva" },
+  { nome: "Adail Filho" },
+  { nome: "Adriana Ventura" },
+  { nome: "Aécio Neves" }
+  // Adicione os demais aqui
+];
+
+function popularListaDeputados(lista) {
+  const ul = document.getElementById('deputadosList');
+  ul.innerHTML = '';
+  lista.forEach(dep => {
+    const li = document.createElement('li');
+    li.textContent = dep.nome;
+    li.addEventListener('click', () => {
+      deputadoSelecionado = dep.nome;
+      document.querySelectorAll('#deputadosList li').forEach(el => el.classList.remove('active'));
+      li.classList.add('active');
+      renderTabela();
+      ranking();
+      graficoDespesas();
+      graficoValores();
+    });
+    ul.appendChild(li);
+  });
+}
+popularListaDeputados(deputadosLista);
+
+async function carregarDespesas() {
+  dados = [];
+  document.getElementById('count').innerText = 'Carregando despesas...';
+  for (let ano = 2023; ano <= 2025; ano++) {
+    let url = `https://dadosabertos.camara.leg.br/api/v2/despesas?ano=${ano}&itens=100`;
+    while(url) {
+      try {
+        const res = await fetch(url);
+        const json = await res.json();
+        dados = dados.concat(json.dados.map(d => ({
+          deputado: d.nomeDeputado,
+          tipo: d.tipoDespesa,
+          valor: parseFloat(d.valorLiquido),
+          fornecedor: d.nomeFornecedor,
+          data: d.dataDocumento
+        })));
+        const next = (json.links || []).find(l => l.rel === 'next');
+        url = next ? next.href : null;
+      } catch(e) {
+        console.error('Erro:', e);
+        url = null;
+      }
+    }
+  }
+  document.getElementById('count').innerText = `${dados.length} registros carregados`;
+  renderTabela();
+  ranking();
+  graficoDespesas();
+  graficoValores();
+}
+
+function renderTabela() {
+  const tbody = document.querySelector('#tabela tbody');
+  tbody.innerHTML = '';
+  let filtrado = deputadoSelecionado ? dados.filter(d => d.deputado === deputadoSelecionado) : dados;
+  filtrado.forEach(d => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${d.deputado}</td>
+      <td>${d.tipo}</td>
+      <td>R$ ${d.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+      <td>${d.fornecedor}</td>
+      <td>${d.data}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function ranking() {
+  const mapa = {};
+  let filtrado = deputadoSelecionado ? dados.filter(d => d.deputado === deputadoSelecionado) : dados;
+  filtrado.forEach(d => mapa[d.tipo] = (mapa[d.tipo] || 0) + d.valor);
+  const ul = document.getElementById('ranking');
+  ul.innerHTML = '';
+  Object.entries(mapa).sort((a,b)=>b[1]-a[1]).forEach(([tipo, valor])=>{
+    const li = document.createElement('li');
+    li.innerText = `${tipo} - R$ ${valor.toLocaleString('pt-BR',{minimumFractionDigits:2})}`;
+    ul.appendChild(li);
+  });
+}
+
+function graficoDespesas() {
+  const mapa = {};
+  let filtrado = deputadoSelecionado ? dados.filter(d => d.deputado === deputadoSelecionado) : dados;
+  filtrado.forEach(d => mapa[d.tipo] = (mapa[d.tipo] || 0) + d.valor);
+  if(graficoDespesa) graficoDespesa.destroy();
+  graficoDespesa = new Chart(document.getElementById('graficoDespesa'), {
+    type:'pie',
+    data:{ labels:Object.keys(mapa), datasets:[{ data:Object.values(mapa), backgroundColor:['#c40000','#ff5733','#ff8d1a','#ffc300','#d4ff00','#00ff55','#00aaff','#0040ff','#5500ff']}]},
+    options:{ responsive:true, plugins:{ legend:{ position:'right', labels:{ color:'white'}}}}
+  });
+}
+
+function graficoValores() {
+  if(graficoValores) graficoValores.destroy();
+  let filtrado = deputadoSelecionado ? dados.filter(d => d.deputado === deputadoSelecionado) : dados;
+  const top = filtrado.sort((a,b)=>b.valor - a.valor).slice(0,5);
+  graficoValores = new Chart(document.getElementById('graficoValores'), {
+    type:'bar',
+    data:{ labels:top.map(d=>d.tipo), datasets:[{ label:'Valor', data:top.map(d=>d.valor), backgroundColor:'#c40000'}]},
+    options:{ responsive:true, scales:{ y:{ beginAtZero:true, ticks:{ color:'white'}}, x:{ ticks:{ color:'white'}}}, plugins:{ legend:{ display:false }}}
+  });
+}
+
+function buscarDeputado() {
+  const filtro = document.getElementById('search').value.toLowerCase();
+  const dep = deputadosLista.find(d => d.nome.toLowerCase() === filtro);
+  if(dep){
+    const li = [...document.querySelectorAll('#deputadosList li')].find(li => li.textContent === dep.nome);
+    if(li) li.click();
+  } else alert('Deputado não encontrado');
+}
+
+function exportCSV() {
+  if(!dados.length){ alert('Nenhum dado!'); return; }
+  let csv='Deputado,Tipo,Valor,Fornecedor,Data\n';
+  let filtrado = deputadoSelecionado ? dados.filter(d => d.deputado === deputadoSelecionado) : dados;
+  filtrado.forEach(d=>{
+    csv+=`"${d.deputado}","${d.tipo}","${d.valor.toFixed(2)}","${d.fornecedor}","${d.data}"\n`;
+  });
+  const blob = new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download='gastos_deputado.csv';
+  a.click();
+}
+
+// Atualiza a cada 30 minutos
+setInterval(carregarDespesas, 1800000);
+
+// Chamada inicial
+carregarDespesas();
+</script>
 </body>
 </html>
