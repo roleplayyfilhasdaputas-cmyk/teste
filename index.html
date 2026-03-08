@@ -104,6 +104,8 @@ object-fit:cover;
 
 <a onclick="missoes()">💥 Ataques 24h</a>
 
+<a onclick="avistamentos()">👀 Avistamentos</a>
+
 <a onclick="foguetes()">🚀 Lançamentos</a>
 
 <a onclick="noticias()">📰 Notícias</a>
@@ -120,6 +122,7 @@ object-fit:cover;
 <li>✈️ Rastreamento de aviões</li>
 <li>🚢 Monitoramento naval</li>
 <li>💥 Ataques e explosões recentes</li>
+<li>👀 Avistamentos navais</li>
 <li>🚀 Lançamentos espaciais</li>
 <li>📰 Notícias internacionais</li>
 </ul>
@@ -159,14 +162,76 @@ conteudo.innerHTML=`<iframe src="https://www.marinetraffic.com/en/ais/embed/zoom
 }
 
 
-/* ataques e explosões */
+/* ataques */
 
 function missoes(){
 conteudo.innerHTML=`<iframe src="https://liveuamap.com/"></iframe>`;
 }
 
 
-/* lançamentos espaciais */
+/* avistamentos */
+
+function avistamentos(){
+
+let registros=[
+
+{
+tipo:"Submarino",
+modelo:"Yasen-class",
+pais:"Rússia",
+hora:"02:10 UTC"
+},
+
+{
+tipo:"Navio",
+modelo:"Arleigh Burke-class Destroyer",
+pais:"Estados Unidos",
+hora:"04:35 UTC"
+},
+
+{
+tipo:"Submarino",
+modelo:"Type 093 Shang-class",
+pais:"China",
+hora:"06:12 UTC"
+},
+
+{
+tipo:"Navio",
+modelo:"Type 055 Destroyer",
+pais:"China",
+hora:"08:50 UTC"
+}
+
+];
+
+let html="<div class='feed'><h2>👀 Avistamentos Recentes</h2>";
+
+registros.forEach(r=>{
+
+html+=`
+<div style="margin-bottom:15px;border-left:3px solid red;padding-left:10px">
+
+🚨 Avistamento Detectado<br>
+
+⚓ Tipo: ${r.tipo}<br>
+🛠 Modelo: ${r.modelo}<br>
+🏳️ País: ${r.pais}<br>
+🕒 Horário: ${r.hora}
+
+</div>
+`;
+
+});
+
+html+="</div>";
+
+conteudo.innerHTML=html;
+
+}
+
+
+/* lançamentos */
 
 async function foguetes(){
 
@@ -194,7 +259,7 @@ conteudo.innerHTML=html;
 }
 
 
-/* notícias */
+/* noticias */
 
 async function noticias(){
 
