@@ -3,7 +3,7 @@
 <head>
 
 <meta charset="UTF-8">
-<title>Centro de Comando Militar</title>
+<title>Centro de Comando Global</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
@@ -11,7 +11,7 @@
 
 body{
 margin:0;
-background:#050b10;
+background:#04080c;
 color:white;
 font-family:Arial;
 }
@@ -33,7 +33,7 @@ top:80px;
 left:10px;
 background:#111;
 padding:15px;
-width:230px;
+width:250px;
 border:1px solid red;
 }
 
@@ -47,6 +47,14 @@ animation:piscando 1s infinite;
 0%{opacity:1}
 50%{opacity:0}
 100%{opacity:1}
+}
+
+.sistema{
+margin-top:15px;
+background:#000;
+padding:10px;
+border:1px solid lime;
+font-size:14px;
 }
 
 .radar{
@@ -89,13 +97,24 @@ animation:radar 2s linear infinite;
 
 <div class="painel">
 
-<h3>🔴 Alertas Globais</h3>
+<h3>🔴 Conflitos</h3>
 
-<div class="alerta">Guerra Ucrânia</div>
-<div class="alerta">Conflito Gaza</div>
+<div class="alerta">Ucrânia</div>
+<div class="alerta">Gaza</div>
 <div class="alerta">Síria</div>
-<div class="alerta">Mar do Sul da China</div>
-<div class="alerta">Coreia do Norte</div>
+<div class="alerta">Mar da China</div>
+
+<div class="sistema">
+
+<b>Sistema B - Análise</b>
+
+<div id="analise">
+
+Iniciando sistema...
+
+</div>
+
+</div>
 
 </div>
 
@@ -111,15 +130,13 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
 maxZoom:6
 }).addTo(map);
 
-
-
-function addBase(lista,cor){
+function add(lista,cor){
 
 lista.forEach(function(b){
 
 L.circleMarker([b[0],b[1]],{
 color:cor,
-radius:6
+radius:7
 }).addTo(map).bindPopup(b[2]);
 
 });
@@ -128,104 +145,88 @@ radius:6
 
 
 
-// bases aereas
+// bases aéreas
 
-addBase([
-
-[38.87,-77.06,"✈ Base Aérea EUA"],
-[51.47,-0.45,"✈ Base RAF UK"],
-[35.55,139.78,"✈ Base Japão"],
-[48.35,11.79,"✈ Base Alemanha"],
-[31.95,35.93,"✈ Base Jordânia"]
-
+add([
+[38.87,-77.06,"✈ Base EUA"],
+[51.47,-0.45,"✈ Base UK"],
+[35.55,139.78,"✈ Base Japão"]
 ],"cyan");
 
 
 
 // bases navais
 
-addBase([
-
-[36.97,-76.33,"⚓ Base Naval Norfolk"],
-[34.70,135.20,"⚓ Base Naval Japão"],
-[31.23,121.47,"⚓ Base Naval China"],
-[24.48,54.37,"⚓ Base Naval Emirados"]
-
+add([
+[36.97,-76.33,"⚓ Base Naval EUA"],
+[31.23,121.47,"⚓ Base Naval China"]
 ],"blue");
-
-
-
-// bases do exercito
-
-addBase([
-
-[33.92,-117.88,"🪖 Base Exército EUA"],
-[55.75,37.61,"🪖 Base Rússia"],
-[39.90,116.40,"🪖 Base China"]
-
-],"green");
 
 
 
 // nucleares
 
-addBase([
-
+add([
 [40.18,44.51,"☢ Base Nuclear Rússia"],
-[34.73,-86.58,"☢ Base Nuclear EUA"],
 [31.90,35.20,"☢ Base Nuclear Israel"]
-
 ],"yellow");
 
 
 
-// satelites
+// porta aviões
 
-addBase([
-
-[0,-30,"🛰 Satélite Militar"],
-[10,60,"🛰 Satélite Espião"],
-[-5,120,"🛰 Satélite Militar"]
-
-],"white");
-
-
-
-// porta avioes
-
-addBase([
-
+add([
 [20,-150,"🚢 Porta Aviões EUA"],
-[15,130,"🚢 Porta Aviões China"],
 [10,60,"🚢 Porta Aviões Índia"]
-
 ],"purple");
 
 
 
 // submarinos
 
-addBase([
-
+add([
 [-10,-40,"🤿 Submarino Nuclear"],
-[25,150,"🤿 Submarino Militar"],
 [5,80,"🤿 Submarino Rússia"]
-
 ],"orange");
 
 
 
 // conflitos
 
-addBase([
-
+add([
 [49,31,"🔴 Guerra Ucrânia"],
 [31,34,"🔴 Gaza"],
 [35,38,"🔴 Síria"],
-[15,115,"🔴 Mar da China"],
-[39,127,"🔴 Coreia"]
-
+[15,115,"🔴 Mar da China"]
 ],"red");
+
+
+
+// SISTEMA B
+
+var conflitos = [
+"Ucrânia",
+"Gaza",
+"Síria",
+"Mar da China"
+];
+
+function sistemaB(){
+
+var risco = ["BAIXO","MÉDIO","ALTO","CRÍTICO"];
+
+var conflito = conflitos[Math.floor(Math.random()*conflitos.length)];
+
+var nivel = risco[Math.floor(Math.random()*risco.length)];
+
+document.getElementById("analise").innerHTML =
+"Conflito analisado: "+conflito+"<br>"+
+"Nível de risco: "+nivel+"<br>"+
+"Atualização: "+new Date().toLocaleTimeString();
+
+}
+
+setInterval(sistemaB,4000);
 
 </script>
 
