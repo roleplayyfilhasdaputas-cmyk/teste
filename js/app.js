@@ -10,21 +10,7 @@ const deputadosLista = [
   { nome: "Adriana Ventura", id: 204500 },
   { nome: "Aécio Neves", id: 74070 },
   { nome: "Luiz Inácio Lula da Silva", id: 139289 },
-  { nome: "Aguinaldo Ribeiro", id: 73593 },
-  { nome: "Airton Faleiro", id: 204501 },
-  { nome: "Alan Rick", id: 204502 },
-  { nome: "Alceu Moreira", id: 204503 },
-  { nome: "Alice Portugal", id: 133574 },
-  { nome: "Aliel Machado", id: 204504 },
-  { nome: "Altineu Côrtes", id: 133942 },
-  { nome: "Amanda Gentil", id: 204505 },
-  { nome: "Amaro Neto", id: 204506 },
-  { nome: "Ana Paula Lima", id: 204507 },
-  { nome: "André Figueiredo", id: 74082 },
-  { nome: "André Fernandes", id: 204508 },
-  { nome: "André Janones", id: 204509 },
-  { nome: "Arthur Lira", id: 178968 },
-  // Continue adicionando os demais deputados...
+  // ... continue adicionando os demais deputados
 ];
 
 // Popula lista lateral
@@ -39,7 +25,7 @@ function popularListaDeputados(lista) {
       deputadoSelecionadoId = dep.id;
       document.querySelectorAll('#deputadosList li').forEach(el => el.classList.remove('active'));
       li.classList.add('active');
-      carregarDespesasAnos(dep.id, dep.nome, 2023, 2026);
+      carregarDespesasAnos(dep.id, dep.nome, 2023, 2025); // anos disponíveis
     });
     ul.appendChild(li);
   });
@@ -50,11 +36,11 @@ popularListaDeputados(deputadosLista);
 if (deputadosLista.length) {
   const primeiro = deputadosLista[0];
   deputadoSelecionadoId = primeiro.id;
-  carregarDespesasAnos(primeiro.id, primeiro.nome, 2023, 2026);
+  carregarDespesasAnos(primeiro.id, primeiro.nome, 2023, 2025);
 }
 
-// Função para carregar despesas de 2023 a 2026
-async function carregarDespesasAnos(id, nome, anoInicio = 2023, anoFim = 2026) {
+// Função para carregar despesas de 2023 a 2025
+async function carregarDespesasAnos(id, nome, anoInicio = 2023, anoFim = 2025) {
   dados = [];
   document.getElementById('count').innerText = 'Carregando despesas...';
   for (let ano = anoInicio; ano <= anoFim; ano++) {
@@ -70,10 +56,10 @@ async function carregarDespesasAnos(id, nome, anoInicio = 2023, anoFim = 2026) {
           fornecedor: d.nomeFornecedor,
           data: d.dataDocumento
         })));
-        const linkNext = (json.links || []).find(l => l.rel === 'next');
-        url = linkNext ? linkNext.href : null;
-      } catch (e) {
-        console.error('Erro ao carregar dados:', e);
+        const next = (json.links || []).find(l => l.rel === 'next');
+        url = next ? next.href : null;
+      } catch(e) {
+        console.error("Erro ao carregar dados:", e);
         url = null;
       }
     }
@@ -184,6 +170,6 @@ function exportCSV() {
 setInterval(() => {
   if (deputadoSelecionadoId) {
     const dep = deputadosLista.find(d => d.id === deputadoSelecionadoId);
-    if(dep) carregarDespesasAnos(dep.id, dep.nome, 2023, 2026);
+    if(dep) carregarDespesasAnos(dep.id, dep.nome, 2023, 2025);
   }
 }, 1800000);
