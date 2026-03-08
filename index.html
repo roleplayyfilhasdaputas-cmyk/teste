@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Radar FRANCA - Helicópteros</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
 body{
@@ -14,19 +15,26 @@ body{
 #topbar{
   background:#010511;
   padding:14px 20px;
-  font-size:22px;
+  font-size:20px;
   font-weight:bold;
   letter-spacing:1px;
   color:#ff0000;
   border-bottom:2px solid #440000;
   box-shadow:0 3px 6px rgba(0,0,0,0.5);
 }
-#container{display:flex; height:calc(100vh - 56px);}
-#map{flex:3; height:100%;}
+#container{
+  display:flex;
+  flex-direction:row;
+  height:calc(100vh - 56px);
+}
+#map{
+  flex:3;
+  height:100%;
+}
 #painel{
   flex:1;
   background:#010511;
-  padding:20px;
+  padding:15px;
   overflow:hidden;
   border-left:3px solid #440000;
   display:flex;
@@ -35,8 +43,8 @@ body{
 }
 #alerta{
   background:#ff0000;
-  padding:12px;
-  margin-bottom:15px;
+  padding:10px;
+  margin-bottom:10px;
   display:none;
   font-weight:bold;
   text-align:center;
@@ -45,26 +53,72 @@ body{
   animation: pulse 1.2s infinite;
 }
 #contador{
-  margin-bottom:15px;
+  margin-bottom:10px;
   font-weight:bold;
   text-align:center;
   color:#ff0000;
-  font-size:18px;
+  font-size:16px;
   background:#200000;
-  padding:12px;
+  padding:10px;
   border-radius:4px;
   box-shadow: inset 0 0 10px #440000;
   border:1px solid #440000;
 }
-#lista{flex:1; overflow-y:auto; border-top:2px solid #440000; margin-top:10px;}
-table{width:100%; border-collapse:collapse;}
-th, td{padding:6px; text-align:left; font-size:13px; border-bottom:1px solid #440000; color:#ff0000;}
+#lista{
+  flex:1;
+  overflow-y:auto;
+  border-top:2px solid #440000;
+  margin-top:10px;
+}
+table{
+  width:100%;
+  border-collapse:collapse;
+}
+th, td{
+  padding:6px;
+  text-align:left;
+  font-size:12px;
+  border-bottom:1px solid #440000;
+  color:#ff0000;
+}
 th{font-weight:bold;}
 tr:nth-child(even){background:#200000;}
 tr:nth-child(odd){background:#100000;}
-.progress-bar{display:inline-block;height:6px;background:#ff0000;border-radius:3px;}
-.progress-container{background:#200000;border-radius:3px;width:80px;display:inline-block;vertical-align:middle;}
-@keyframes pulse{0%{opacity:1;}50%{opacity:0.6;}100%{opacity:1;}}
+.progress-bar{
+  display:inline-block;
+  height:5px;
+  background:#ff0000;
+  border-radius:3px;
+}
+.progress-container{
+  background:#200000;
+  border-radius:3px;
+  width:70px;
+  display:inline-block;
+  vertical-align:middle;
+}
+@keyframes pulse{
+  0%{opacity:1;}
+  50%{opacity:0.6;}
+  100%{opacity:1;}
+}
+
+/* RESPONSIVO PARA CELULARES */
+@media (max-width:768px){
+  #container{
+    flex-direction:column;
+  }
+  #map{height:50vh;}
+  #painel{
+    flex:1;
+    height:50vh;
+    border-left:none;
+    border-top:3px solid #440000;
+  }
+  #topbar{font-size:18px;padding:12px;}
+  th, td{font-size:11px;}
+  #contador{font-size:14px;padding:8px;}
+}
 </style>
 </head>
 <body>
@@ -80,8 +134,8 @@ tr:nth-child(odd){background:#100000;}
 <thead>
 <tr>
 <th>Callsign</th>
-<th>Altitude (m)</th>
-<th>Velocidade (m/s)</th>
+<th>Altitude</th>
+<th>Velocidade</th>
 <th>Status</th>
 </tr>
 </thead>
@@ -105,7 +159,6 @@ var markers={};
 var bases={}; 
 var estacionados={}; 
 var iconeBase=L.icon({iconUrl:'https://cdn-icons-png.flaticon.com/512/684/684908.png',iconSize:[30,30]});
-
 if(localStorage.getItem("bases")) bases=JSON.parse(localStorage.getItem("bases"));
 
 function distancia(lat1,lon1,lat2,lon2){
@@ -115,22 +168,15 @@ function distancia(lat1,lon1,lat2,lon2){
   return R*c;
 }
 
-function detectarHelicoptero(vel,alt){
-  if(!vel) return false;
-  if(vel<120 && alt<3000) return true;
-  return false;
-}
-
-function limparMarcadores(){ Object.values(markers).forEach(m=>map.removeLayer(m)); markers={}; }
-
+function detectarHelicoptero(vel,alt){if(!vel) return false; if(vel<120 && alt<3000) return true; return false;}
+function limparMarcadores(){Object.values(markers).forEach(m=>map.removeLayer(m)); markers={};}
 function adicionarBase(lat,lon){
   let key=lat.toFixed(3)+"_"+lon.toFixed(3);
   let agora=Date.now();
   if(!bases[key]) bases[key]={lat:lat,lon:lon,timestamp:agora,count:1};
-  else {bases[key].count++; bases[key].timestamp=agora;}
+  else{bases[key].count++; bases[key].timestamp=agora;}
   localStorage.setItem("bases",JSON.stringify(bases));
 }
-
 function desenharBases(){
   let agora=Date.now();
   Object.keys(bases).forEach(key=>{
@@ -164,7 +210,6 @@ async function radar(){
       trilhas[id].push([lat,lon]);
       L.polyline(trilhas[id],{color:"red"}).addTo(map);
 
-      // Previsão simples de rota
       let futuroLat=lat + (vel/111111)*Math.cos(0); 
       let futuroLon=lon + (vel/111111)*Math.sin(0);
       L.polyline([[lat,lon],[futuroLat,futuroLon]],{color:"orange",dashArray:"5,10"}).addTo(map);
@@ -172,8 +217,8 @@ async function radar(){
       document.getElementById("alerta").style.display="block";
 
       let status=vel<5?"Pousado":"Em voo";
-      let velBar=Math.min(vel/120*80,80);
-      let altBar=Math.min(alt/3000*80,80);
+      let velBar=Math.min(vel/120*70,70);
+      let altBar=Math.min(alt/3000*70,70);
       let row=`<tr>
         <td>${callsign}</td>
         <td>${alt}<div class="progress-container"><div class="progress-bar" style="width:${altBar}px"></div></div></td>
