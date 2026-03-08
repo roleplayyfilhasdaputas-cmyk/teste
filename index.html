@@ -1,1 +1,161 @@
-<!DOCTYPE html> <html lang="pt-BR"> <head> <meta charset="UTF-8"> <title>Radar IA Helicópteros - Franca</title> <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/> <style> body{ margin:0; font-family:Arial; background:#020617; color:white; } #topbar{ background:#111827; padding:12px; font-size:18px; font-weight:bold; } #container{ display:flex; height:calc(100vh - 48px); } #map{ flex:3; height:100%; } #painel{ flex:1; background:#020617; padding:15px; overflow:auto; border-left:2px solid #1f2937; } .alerta{ background:#ff0000; padding:10px; margin-bottom:10px; display:none; font-weight:bold; } .card{ background:#1f2937; padding:10px; margin-bottom:10px; border-radius:6px; } </style> </head> <body> <div id="topbar"> 🚁 Radar IA Helicópteros — Franca </div> <div id="container"> <div id="map"></div> <div id="painel"> <div id="alerta" class="alerta"> ⚠ Possível helicóptero detectado </div> <h3>Detecções</h3> <div id="lista"></div> </div> </div> <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script> <script> var centro = {lat:-20.5386,lon:-47.4000}; var raio = 5; var map = L.map('map').setView([centro.lat,centro.lon],12); L.tileLayer( 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19}).addTo(map); L.circle([centro.lat,centro.lon],{ radius:raio*1000, color:"red", fill:false }).addTo(map); var trilhas = {}; var markers = {}; function distancia(lat1,lon1,lat2,lon2){ var R=6371; var dLat=(lat2-lat1)*Math.PI/180; var dLon=(lon2-lon1)*Math.PI/180; var a= Math.sin(dLat/2)*Math.sin(dLat/2)+ Math.cos(lat1*Math.PI/180)* Math.cos(lat2*Math.PI/180)* Math.sin(dLon/2)*Math.sin(dLon/2); var c=2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)); return R*c; } // heurística de helicóptero function detectarHelicoptero(vel,alt){ if(!vel) return false; if(vel < 120 && alt < 3000){ return true; } return false; } async function radar(){ let r = await fetch("https://opensky-network.org/api/states/all"); let data = await r.json(); document.getElementById("lista").innerHTML=""; document.getElementById("alerta").style.display="none"; data.states.forEach(a=>{ let id=a[0]; let callsign=a[1]; let lon=a[5]; let lat=a[6]; let alt=a[7]; let vel=a[9]; if(!lat || !lon) return; let dist = distancia(centro.lat,centro.lon,lat,lon); if(dist < raio){ let helicoptero = detectarHelicoptero(vel,alt); let marker = L.marker([lat,lon]).addTo(map) .bindPopup(callsign); if(!trilhas[id]) trilhas[id]=[]; trilhas[id].push([lat,lon]); L.polyline(trilhas[id],{color:"yellow"}).addTo(map); if(helicoptero){ document.getElementById("alerta").style.display="block"; } let tipo = helicoptero ? "🚁 possível helicóptero" : "✈ aeronave"; let card = ` <div class="card"> <b>${callsign}</b><br> Tipo: ${tipo}<br> Altitude: ${alt}<br> Velocidade: ${vel} </div> `; document.getElementById("lista").innerHTML+=card; } }); } radar(); setInterval(radar,20000); </script> </body> </html>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Radar IA Helicópteros - Franca</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  background:#020617;
+  color:white;
+}
+#topbar{
+  background:#111827;
+  padding:12px;
+  font-size:18px;
+  font-weight:bold;
+}
+#container{
+  display:flex;
+  height:calc(100vh - 48px);
+}
+#map{
+  flex:3;
+  height:100%;
+}
+#painel{
+  flex:1;
+  background:#020617;
+  padding:15px;
+  overflow:auto;
+  border-left:2px solid #1f2937;
+}
+.alerta{
+  background:#ff0000;
+  padding:10px;
+  margin-bottom:10px;
+  display:none;
+  font-weight:bold;
+}
+.card{
+  background:#1f2937;
+  padding:10px;
+  margin-bottom:10px;
+  border-radius:6px;
+}
+</style>
+</head>
+<body>
+<div id="topbar">
+🚁 Radar IA Helicópteros — Franca
+</div>
+<div id="container">
+<div id="map"></div>
+<div id="painel">
+<div id="alerta" class="alerta">
+⚠ Possível helicóptero detectado
+</div>
+<h3>Detecções</h3>
+<div id="lista"></div>
+</div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+var centro = {lat:-20.5386,lon:-47.4000};
+var raio = 5;
+
+var map = L.map('map').setView([centro.lat,centro.lon],12);
+
+L.tileLayer(
+  'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  {maxZoom:19}
+).addTo(map);
+
+// círculo do centro
+L.circle([centro.lat,centro.lon],{
+  radius:raio*1000,
+  color:"red",
+  fill:false
+}).addTo(map);
+
+// 🚨 área do Jardim Aeroporto III
+var bairro = [
+  [-20.5575,-47.4160],
+  [-20.5575,-47.3980],
+  [-20.5450,-47.3980],
+  [-20.5450,-47.4160]
+];
+L.polygon(bairro,{
+  color:"red",
+  fillColor:"red",
+  fillOpacity:0.3
+}).addTo(map).bindPopup("Jardim Aeroporto III");
+
+var trilhas = {};
+var markers = {};
+
+// distância entre coordenadas
+function distancia(lat1,lon1,lat2,lon2){
+  var R=6371;
+  var dLat=(lat2-lat1)*Math.PI/180;
+  var dLon=(lon2-lon1)*Math.PI/180;
+  var a= Math.sin(dLat/2)*Math.sin(dLat/2)+ Math.cos(lat1*Math.PI/180)* Math.cos(lat2*Math.PI/180)* Math.sin(dLon/2)*Math.sin(dLon/2);
+  var c=2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+  return R*c;
+}
+
+// heurística de helicóptero
+function detectarHelicoptero(vel,alt){
+  if(!vel) return false;
+  if(vel < 120 && alt < 3000) return true;
+  return false;
+}
+
+async function radar(){
+  let r = await fetch("https://opensky-network.org/api/states/all");
+  let data = await r.json();
+
+  document.getElementById("lista").innerHTML="";
+  document.getElementById("alerta").style.display="none";
+
+  data.states.forEach(a=>{
+    let id=a[0];
+    let callsign=a[1];
+    let lon=a[5];
+    let lat=a[6];
+    let alt=a[7];
+    let vel=a[9];
+    if(!lat || !lon) return;
+    let dist = distancia(centro.lat,centro.lon,lat,lon);
+    if(dist < raio){
+      let helicoptero = detectarHelicoptero(vel,alt);
+      let marker = L.marker([lat,lon]).addTo(map)
+        .bindPopup(callsign);
+      if(!trilhas[id]) trilhas[id]=[];
+      trilhas[id].push([lat,lon]);
+      L.polyline(trilhas[id],{color:"yellow"}).addTo(map);
+      if(helicoptero){
+        document.getElementById("alerta").style.display="block";
+      }
+      let tipo = helicoptero ? "🚁 possível helicóptero" : "✈ aeronave";
+      let card = `
+      <div class="card">
+        <b>${callsign}</b><br>
+        Tipo: ${tipo}<br>
+        Altitude: ${alt}<br>
+        Velocidade: ${vel}
+      </div>
+      `;
+      document.getElementById("lista").innerHTML+=card;
+    }
+  });
+}
+
+radar();
+setInterval(radar,20000);
+</script>
+</body>
+</html>
