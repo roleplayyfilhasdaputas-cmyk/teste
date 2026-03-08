@@ -38,6 +38,7 @@ body{
   margin-bottom:10px;
   display:none;
   font-weight:bold;
+  text-align:center;
 }
 .card{
   background:#1f2937;
@@ -64,57 +65,78 @@ body{
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-var centro = {lat:-20.5386,lon:-47.4000};
+var centro = {lat:-20.5386, lon:-47.4000};
 var raio = 5;
 
 var map = L.map('map').setView([centro.lat,centro.lon],12);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
 
-L.tileLayer(
-  'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-  {maxZoom:19}
-).addTo(map);
-
-// círculo do centro
-L.circle([centro.lat,centro.lon],{
-  radius:raio*1000,
-  color:"red",
-  fill:false
-}).addTo(map);
-
-// 🚨 área do Jardim Aeroporto III
-var bairro = [
-  [-20.5575,-47.4160],
-  [-20.5575,-47.3980],
-  [-20.5450,-47.3980],
-  [-20.5450,-47.4160]
-];
-L.polygon(bairro,{
-  color:"red",
-  fillColor:"red",
-  fillOpacity:0.3
-}).addTo(map).bindPopup("Jardim Aeroporto III");
+// círculo central
+L.circle([centro.lat,centro.lon],{radius:raio*1000,color:"red",fill:false}).addTo(map);
 
 var trilhas = {};
 var markers = {};
+var bases = {}; // pontos de pouso/base
+var estacionados = {}; // conta quantas atualizações o helicóptero ficou parado
 
-// distância entre coordenadas
+// carrega bases do LocalStorage
+if(localStorage.getItem("bases")){
+  bases = JSON.parse(localStorage.getItem("bases"));
+}
+
+// função distância
 function distancia(lat1,lon1,lat2,lon2){
   var R=6371;
   var dLat=(lat2-lat1)*Math.PI/180;
   var dLon=(lon2-lon1)*Math.PI/180;
-  var a= Math.sin(dLat/2)*Math.sin(dLat/2)+ Math.cos(lat1*Math.PI/180)* Math.cos(lat2*Math.PI/180)* Math.sin(dLon/2)*Math.sin(dLon/2);
+  var a= Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)**2;
   var c=2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
   return R*c;
 }
 
-// heurística de helicóptero
+// detecta helicóptero
 function detectarHelicoptero(vel,alt){
   if(!vel) return false;
   if(vel < 120 && alt < 3000) return true;
   return false;
 }
 
+// limpa marcadores antigos
+function limparMarcadores(){
+  Object.values(markers).forEach(m=>map.removeLayer(m));
+  markers = {};
+}
+
+// adiciona base/pouso
+function adicionarBase(lat,lon){
+  let key = lat.toFixed(5)+"_"+lon.toFixed(5);
+  let agora = Date.now();
+  let vinteDias = 20*24*60*60*1000;
+  if(!bases[key] || (agora - bases[key].timestamp) > vinteDias){
+    bases[key] = {lat:lat,lon:lon,timestamp:agora};
+    localStorage.setItem("bases",JSON.stringify(bases));
+    L.marker([lat,lon], {icon: L.icon({iconUrl:'https://cdn-icons-png.flaticon.com/512/684/684908.png',iconSize:[25,25]})})
+      .addTo(map)
+      .bindPopup("BASE / Pouso (20 dias)").openPopup();
+  }
+}
+
+// desenha bases existentes
+function desenharBases(){
+  let agora = Date.now();
+  Object.keys(bases).forEach(key=>{
+    if((agora - bases[key].timestamp) <= 20*24*60*60*1000){
+      L.marker([bases[key].lat,bases[key].lon])
+        .bindPopup("BASE / Pouso (20 dias)")
+        .addTo(map);
+    }
+  });
+}
+
+// radar principal
 async function radar(){
+  limparMarcadores();
+
   let r = await fetch("https://opensky-network.org/api/states/all");
   let data = await r.json();
 
@@ -122,40 +144,62 @@ async function radar(){
   document.getElementById("alerta").style.display="none";
 
   data.states.forEach(a=>{
-    let id=a[0];
-    let callsign=a[1];
-    let lon=a[5];
-    let lat=a[6];
-    let alt=a[7];
-    let vel=a[9];
+    let id = a[0];
+    let callsign = a[1];
+    let lon = a[5];
+    let lat = a[6];
+    let alt = a[7];
+    let vel = a[9];
     if(!lat || !lon) return;
-    let dist = distancia(centro.lat,centro.lon,lat,lon);
+
+    let dist = distancia(centro.lat, centro.lon, lat, lon);
     if(dist < raio){
       let helicoptero = detectarHelicoptero(vel,alt);
-      let marker = L.marker([lat,lon]).addTo(map)
-        .bindPopup(callsign);
+      if(!helicoptero) return;
+
+      // marcador helicóptero
+      let marker = L.marker([lat,lon]).addTo(map).bindPopup(callsign);
+      markers[id] = marker;
+
+      // trilha
       if(!trilhas[id]) trilhas[id]=[];
       trilhas[id].push([lat,lon]);
-      L.polyline(trilhas[id],{color:"yellow"}).addTo(map);
-      if(helicoptero){
-        document.getElementById("alerta").style.display="block";
-      }
-      let tipo = helicoptero ? "🚁 possível helicóptero" : "✈ aeronave";
-      let card = `
-      <div class="card">
+      L.polyline(trilhas[id],{color:"red"}).addTo(map);
+
+      // alerta visual
+      document.getElementById("alerta").style.display="block";
+
+      // painel lateral
+      let card = `<div class="card">
         <b>${callsign}</b><br>
-        Tipo: ${tipo}<br>
+        Tipo: 🚁 helicóptero<br>
         Altitude: ${alt}<br>
         Velocidade: ${vel}
-      </div>
-      `;
+      </div>`;
       document.getElementById("lista").innerHTML+=card;
+
+      // detectar pouso
+      if(vel < 5){ // quase parado
+        if(!estacionados[id]) estacionados[id] = 1;
+        else estacionados[id]++;
+        if(estacionados[id] >= 3){ // 3 atualizações = pouso
+          adicionarBase(lat,lon);
+        }
+      } else {
+        estacionados[id] = 0;
+      }
     }
   });
+
+  // redesenha bases
+  desenharBases();
 }
 
+// primeira execução
 radar();
+// atualiza a cada 20s
 setInterval(radar,20000);
+
 </script>
 </body>
 </html>
