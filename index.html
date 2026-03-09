@@ -2,70 +2,78 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Franca SP - Ocorrências Policiais</title>
+<title>Painel de Ocorrências - Franca SP</title>
+
+<!-- Leaflet CSS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
 <style>
-  body { margin:0; font-family:Arial; background:#111; color:white; }
-  #map { height:100vh; }
+  body { margin:0; font-family:Arial, sans-serif; background:#111; color:white; }
+  #map { height:90vh; }
+  #painel { height:10vh; padding:10px; background:#222; overflow-x:auto; white-space:nowrap; }
+  .ocorrencia { display:inline-block; margin-right:20px; }
 </style>
 </head>
 <body>
-<h2 style="padding:10px">Monitoramento Ocorrências Policiais - Franca SP</h2>
+
+<h2 style="padding:10px">Mapa de Ocorrências - Franca SP</h2>
+
 <div id="map"></div>
+<div id="painel">
+  <span class="ocorrencia">Carregando ocorrências...</span>
+</div>
 
 <script>
-// === MAPA ===
-var map = L.map('map').setView([-20.539,-47.401],13);
+// 1️⃣ Criar mapa
+var map = L.map('map').setView([-20.539, -47.401], 13);
+
+// 2️⃣ Tile Layer
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-// Camadas
+// 3️⃣ Camada para ocorrências
 var camadaOcorrencias = L.layerGroup().addTo(map);
-var camadaAlertasIA = L.layerGroup().addTo(map);
 
-// === ÍCONE VERMELHO DE OCORRÊNCIA POLICIAL ===
-var iconePolicial = L.icon({
-  iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/3/33/Red_circle_icon.svg', // vermelho realista
-  iconSize: [25,25]
-});
+// 4️⃣ Função para adicionar uma ocorrência no mapa
+function adicionarOcorrencia(lat, lon, tipo, resumo, horario){
+  var marcador = L.marker([lat, lon], {icon: L.icon({
+    iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png', // ícone vermelho de alerta
+    iconSize: [30, 30],
+    iconAnchor: [15, 30],
+    popupAnchor: [0, -30]
+  })}).addTo(camadaOcorrencias);
 
-// === SIMULAÇÃO DE OCORRÊNCIAS POLICIAIS ===
-var ocorrencias = [];
-function gerarOcorrencias(){
-  camadaOcorrencias.clearLayers();
-  ocorrencias = [];
-  for(let i=0;i<10;i++){
-    let lat = -20.539 + (Math.random()-0.5)*0.05;
-    let lon = -47.401 + (Math.random()-0.5)*0.05;
-    ocorrencias.push({lat, lon});
-    L.marker([lat,lon], {icon: iconePolicial})
-      .addTo(camadaOcorrencias)
-      .bindPopup("Ocorrência policial");
-  }
+  marcador.bindPopup(`<b>${tipo}</b><br>${horario}<br>${resumo}`);
+
+  // Adiciona no painel lateral
+  var painel = document.getElementById("painel");
+  var span = document.createElement("span");
+  span.className = "ocorrencia";
+  span.innerHTML = `<b>${tipo}</b>: ${resumo} (${horario})`;
+  painel.appendChild(span);
 }
 
-// === 9 IAs DETECTANDO OCORRÊNCIAS POLICIAIS ===
-function atualizarAlertasIA(){
-  camadaAlertasIA.clearLayers();
-  for(let i=1;i<=9;i++){
-    // IA escolhe aleatoriamente uma ocorrência
-    let occ = ocorrencias[Math.floor(Math.random()*ocorrencias.length)];
-    if(occ){
-      let lat = occ.lat + (Math.random()-0.5)*0.001; // leve variação
-      let lon = occ.lon + (Math.random()-0.5)*0.001;
-      L.marker([lat,lon], {icon: iconePolicial})
-        .addTo(camadaAlertasIA)
-        .bindPopup(`IA policial ${i} detectou ocorrência!`);
-    }
-  }
+// 5️⃣ Exemplo de ocorrência (substituir depois pelos dados da IA)
+adicionarOcorrencia(-20.5385, -47.4020, "Assalto", "Roubo a mão armada em frente ao supermercado", "09/03/2026 08:30");
+adicionarOcorrencia(-20.5400, -47.4035, "Acidente de Trânsito", "Colisão entre dois veículos na Av. Brasil", "09/03/2026 09:15");
+
+// 6️⃣ Função futura: receber dados da IA que extrai notícias
+/*
+function atualizarOcorrenciasDoBackend(){
+  fetch('/api/ocorrencias')
+    .then(r => r.json())
+    .then(data => {
+      camadaOcorrencias.clearLayers();
+      document.getElementById("painel").innerHTML = "";
+      data.forEach(o => {
+        adicionarOcorrencia(o.lat, o.lon, o.tipo, o.resumo, o.horario);
+      });
+    });
 }
 
-// === LOOP DE ATUALIZAÇÃO ===
-gerarOcorrencias();
-atualizarAlertasIA();
-
-setInterval(gerarOcorrencias,15000);     // atualiza ocorrências
-setInterval(atualizarAlertasIA,5000);   // atualiza detecção das IAs
+// Atualizar a cada 5 minutos
+setInterval(atualizarOcorrenciasDoBackend, 300000);
+*/
 </script>
 
 </body>
