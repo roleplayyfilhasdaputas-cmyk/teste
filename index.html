@@ -2,31 +2,34 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Radar de Ocorrências Franca – Avançado</title>
+<title>Radar de Ocorrências Franca – PRO</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 body { margin:0; font-family:Arial; background:#111; color:white; }
-#map { height:75vh; }
-#painel { height:25vh; background:#222; overflow:auto; padding:10px; }
+#map { height:60vh; }
+#painel { height:40vh; background:#222; overflow:auto; padding:10px; display:flex; flex-direction:row; }
+#timeline { flex:1; overflow:auto; padding-right:10px; }
+#dashboard { flex:1; padding-left:10px; }
 .timeline-item { margin-bottom:5px; }
 .alert-marker { animation: pulse 1s infinite; }
-@keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.3); }
-  100% { transform: scale(1); }
-}
+@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.3); } 100% { transform: scale(1); } }
 </style>
 </head>
+
 <body>
 
-<h2 style="padding:10px">Radar de Ocorrências – Franca</h2>
+<h2 style="padding:10px">Radar de Ocorrências – Franca PRO</h2>
+
 <div id="map"></div>
 <div id="painel">
-<h3>Ocorrências últimas 24h</h3>
-<div id="timeline"></div>
+  <div id="timeline"></div>
+  <div id="dashboard">
+    <canvas id="chart"></canvas>
+  </div>
 </div>
 
 <script>
@@ -34,7 +37,7 @@ body { margin:0; font-family:Arial; background:#111; color:white; }
 const map = L.map('map').setView([-20.538,-47.401],13);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-// --- Feeds RSS ---
+// --- Feeds RSS (segurança) ---
 const feeds = [
 "https://g1.globo.com/sp/franca-jacarei/rss.xml",
 "https://g1.globo.com/sp/ribeirao-preto-franca/rss.xml",
@@ -44,21 +47,10 @@ const feeds = [
 "https://www.ribeiraopretoonline.com.br/rss/seguranca",
 "https://www.jornalacidade.com.br/rss/policia",
 "https://www.estadao.com.br/rss/policia",
-"https://www.gazetadopovo.com.br/rss/seguranca",
-"https://www.band.uol.com.br/rss/cidades",
-"https://www.cnnbrasil.com.br/rss/brasil",
-"https://www.r7.com/rss/cidades",
-"https://www.uol.com.br/rss/noticias",
-"https://www.terra.com.br/rss/brasil",
-"https://www.ig.com.br/noticias/rss/seguranca",
-"https://www.jornaldebrasilia.com.br/rss/policia",
-"https://www.odiario.com.br/rss/seguranca",
-"https://www.jornaldeuberaba.com.br/rss/policia",
-"https://www.diariodopara.com.br/rss/seguranca",
-"https://www.jornalmaringa.com.br/rss/seguranca"
+"https://www.gazetadopovo.com.br/rss/seguranca"
 ];
 
-// --- Tipos de crime com ícones ---
+// --- Tipos de crime ---
 const crimeIcons = {
   "acidente": "yellow",
   "roubo": "red",
@@ -68,10 +60,12 @@ const crimeIcons = {
   "latrocínio": "black"
 };
 
-// --- Marcadores ---
+// --- Marcadores e dados ---
 let markers = [];
+let ocorrenciasBairro = {};
+let ocorrenciasHora = {};
 
-// --- Função para detectar tipo de crime ---
+// --- Função tipoCrime ---
 function tipoCrime(t){
   t = t.toLowerCase();
   for(let key in crimeIcons){
@@ -105,24 +99,24 @@ async function rss(){
   return lista.slice(0,100);
 }
 
-// --- Geocoding automático (bairro detectado via título) ---
+// --- Geocoding ---
 async function geocode(text){
   const url = "https://nominatim.openstreetmap.org/search?format=json&q=" + encodeURIComponent(text + ", Franca, SP");
   try{
     let r = await fetch(url);
     let j = await r.json();
-    if(j && j.length>0){
-      return [parseFloat(j[0].lat), parseFloat(j[0].lon)];
-    }
+    if(j && j.length>0) return [parseFloat(j[0].lat), parseFloat(j[0].lon)];
   }catch(e){ console.warn("Erro geocode:", text, e); }
   return null;
 }
 
-// --- Atualiza mapa e timeline ---
+// --- Atualiza mapa, timeline e dashboard ---
 async function atualizar(){
   markers.forEach(m=>map.removeLayer(m));
   markers = [];
   document.getElementById("timeline").innerHTML = "";
+  ocorrenciasBairro = {};
+  ocorrenciasHora = {};
 
   let noticias = await rss();
 
@@ -130,14 +124,13 @@ async function atualizar(){
     let tipo = tipoCrime(n.titulo);
     if(!tipo) continue;
 
-    // tenta extrair bairro do título
     let match = n.titulo.match(/bairro\s([\w\s]+)/i);
-    let endereco = match ? match[1] : "Franca, SP";
+    let bairro = match ? match[1].trim() : "Desconhecido";
 
-    let coords = await geocode(endereco);
+    let coords = await geocode(bairro);
     if(!coords) coords = [-20.538 + Math.random()*0.05, -47.401 + Math.random()*0.05];
 
-    // cria marcador com ícone e alerta visual
+    // Cria marcador
     let marker = L.circleMarker(coords, {
       radius: tipo=="acidente"?6:8,
       color: crimeIcons[tipo],
@@ -145,16 +138,46 @@ async function atualizar(){
       fillOpacity:0.9,
       className: tipo=="homicídio"||tipo=="assassinato"?"alert-marker":""
     }).addTo(map);
-
     marker.bindPopup("<b>"+n.titulo+"</b><br>"+n.data.toLocaleString("pt-BR"));
     markers.push(marker);
 
-    // adiciona à timeline
+    // Timeline
     let item = document.createElement("div");
     item.className = "timeline-item";
     item.innerHTML = n.data.toLocaleString("pt-BR")+" - "+n.titulo;
     document.getElementById("timeline").appendChild(item);
+
+    // Dashboard
+    ocorrenciasBairro[bairro] = (ocorrenciasBairro[bairro]||0)+1;
+    let hora = n.data.getHours();
+    ocorrenciasHora[hora] = (ocorrenciasHora[hora]||0)+1;
+
+    // Notificação visual (alerta)
+    if(tipo=="homicídio"||tipo=="assassinato"){
+      new Audio("https://www.soundjay.com/buttons/sounds/beep-07.mp3").play();
+    }
   }
+
+  atualizarDashboard();
+}
+
+// --- Atualiza gráfico ---
+let chart;
+function atualizarDashboard(){
+  const ctx = document.getElementById("chart").getContext("2d");
+  if(chart) chart.destroy();
+  chart = new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:Object.keys(ocorrenciasBairro),
+      datasets:[{
+        label:'Ocorrências por bairro',
+        data:Object.values(ocorrenciasBairro),
+        backgroundColor:'rgba(255,99,132,0.6)'
+      }]
+    },
+    options:{ responsive:true, plugins:{ legend:{ display:false } } }
+  });
 }
 
 // Atualiza a cada 10 minutos
