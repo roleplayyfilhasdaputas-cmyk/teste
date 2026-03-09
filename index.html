@@ -2,11 +2,9 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Mapa de Ocorrências - Franca SP</title>
-
+<title>Mapa de Notícias - Franca SP</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
 <style>
   body { margin:0; font-family:Arial, sans-serif; background:#111; color:white; }
   #map { height:90vh; }
@@ -16,43 +14,41 @@
 </head>
 <body>
 
-<h2 style="padding:10px">Mapa de Ocorrências - Franca SP (últimas 24h)</h2>
+<h2 style="padding:10px">Mapa de Notícias de Franca SP (últimas 24h)</h2>
 
 <div id="map"></div>
 <div id="painel">
-  <span class="ocorrencia">Carregando ocorrências...</span>
+  <span class="ocorrencia">Carregando notícias...</span>
 </div>
 
 <script>
-// 1️⃣ Mapa
+// 1️⃣ Mapa centralizado em Franca
 var map = L.map('map').setView([-20.539, -47.401], 13);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+var camadaNoticias = L.layerGroup().addTo(map);
 
-// 2️⃣ Camada de ocorrências
-var camadaOcorrencias = L.layerGroup().addTo(map);
-
-// 3️⃣ Função para adicionar ocorrência
-function adicionarOcorrencia(lat, lon, tipo, resumo, horario){
+// 2️⃣ Função para adicionar notícia
+function adicionarNoticia(lat, lon, titulo, horario){
   var marcador = L.marker([lat, lon], {icon: L.icon({
     iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
     iconSize: [30,30],
     iconAnchor: [15,30],
     popupAnchor: [0,-30]
-  })}).addTo(camadaOcorrencias);
+  })}).addTo(camadaNoticias);
 
-  marcador.bindPopup(`<b>${tipo}</b><br>${horario}<br>${resumo}`);
+  marcador.bindPopup(`<b>${titulo}</b><br>${horario}`);
 
   var painel = document.getElementById("painel");
   var span = document.createElement("span");
   span.className = "ocorrencia";
-  span.innerHTML = `<b>${tipo}</b>: ${resumo} (${horario})`;
+  span.innerHTML = `<b>${titulo}</b> (${horario})`;
   painel.appendChild(span);
 }
 
-// 4️⃣ Função para pegar notícias RSS das últimas 24h
+// 3️⃣ Função para pegar notícias reais via RSS
 async function pegarNoticiasRSS(){
-  const rssURL = "https://g1.globo.com/rss/sp/franca-jacarei/index.xml";
-  const proxy = "https://api.allorigins.win/get?url=";
+  const rssURL = "https://g1.globo.com/rss/sp/franca-jacarei/index.xml"; // RSS G1 Franca
+  const proxy = "https://api.allorigins.win/get?url="; // Proxy CORS
   try {
     const res = await fetch(proxy + encodeURIComponent(rssURL));
     const data = await res.json();
@@ -60,16 +56,15 @@ async function pegarNoticiasRSS(){
     const xml = parser.parseFromString(data.contents, "application/xml");
     const items = xml.querySelectorAll("item");
     const noticias24h = [];
-
     const agora = new Date();
+
     items.forEach(item => {
-      const title = item.querySelector("title").textContent;
-      const link = item.querySelector("link").textContent;
+      const titulo = item.querySelector("title").textContent;
       const pubDate = new Date(item.querySelector("pubDate").textContent);
 
-      // Filtra últimas 24h
+      // Últimas 24h
       if ((agora - pubDate)/(1000*60*60) <= 24) {
-        noticias24h.push({title, link, pubDate});
+        noticias24h.push({titulo, pubDate});
       }
     });
     return noticias24h;
@@ -79,23 +74,23 @@ async function pegarNoticiasRSS(){
   }
 }
 
-// 5️⃣ Simular geocoding e adicionar ao mapa
-async function atualizarMapa() {
-  camadaOcorrencias.clearLayers();
+// 4️⃣ Atualizar mapa
+async function atualizarMapa(){
+  camadaNoticias.clearLayers();
   document.getElementById("painel").innerHTML = "";
 
   const noticias = await pegarNoticiasRSS();
 
   if(noticias.length === 0){
-    document.getElementById("painel").innerHTML = "<span class='ocorrencia'>Nenhuma ocorrência nas últimas 24h</span>";
+    document.getElementById("painel").innerHTML = "<span class='ocorrencia'>Nenhuma notícia nas últimas 24h</span>";
     return;
   }
 
   noticias.forEach(n => {
-    // Simula latitude/longitude aleatória próxima ao centro de Franca
+    // Simula lat/lon próximas ao centro de Franca
     const lat = -20.539 + (Math.random()-0.5)/100;
     const lon = -47.401 + (Math.random()-0.5)/100;
-    adicionarOcorrencia(lat, lon, "Notícia", n.title, n.pubDate.toLocaleString());
+    adicionarNoticia(lat, lon, n.titulo, n.pubDate.toLocaleString());
   });
 }
 
@@ -104,7 +99,7 @@ setInterval(atualizarMapa, 1200000);
 
 // Atualiza na primeira carga
 atualizarMapa();
-
 </script>
+
 </body>
 </html>
