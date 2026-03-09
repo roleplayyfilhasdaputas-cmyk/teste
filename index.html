@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Mapa de Ocorrências com IA - Franca SP</title>
+<title>Mapa de Ocorrências com 20 IAs - Franca SP</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css"/>
@@ -18,10 +18,10 @@ body { margin:0; font-family:Arial, sans-serif; background:#111; color:white; }
 </head>
 <body>
 
-<h2 style="padding:10px">Mapa de Ocorrências com IA - Franca SP</h2>
+<h2 style="padding:10px">Mapa de Ocorrências com 20 IAs - Franca SP</h2>
 
 <div id="map"></div>
-<div id="painel"><span class="ocorrencia">Carregando notícias com IA...</span></div>
+<div id="painel"><span class="ocorrencia">Carregando notícias com 20 IAs...</span></div>
 
 <script>
 // 1️⃣ Mapa
@@ -58,28 +58,26 @@ function adicionarNoticia(lat, lon, titulo, horario, tipo){
   painel.appendChild(span);
 }
 
-// 4️⃣ RSS feeds (incluindo GCN)
+// 4️⃣ RSS feeds
 const feeds = [
-  "https://g1.globo.com/rss/sp/franca-jacarei/index.xml",  // G1 Franca
-  "https://acidadeon.com/franca/rss",                     // ACidadeON Franca
-  "https://g1.globo.com/rss/sp/cn/index.xml"             // GCN - G1 Centro-Norte
+  "https://g1.globo.com/rss/sp/franca-jacarei/index.xml",  
+  "https://acidadeon.com/franca/rss",                     
+  "https://g1.globo.com/rss/sp/cn/index.xml"             
 ];
 
-// 5️⃣ Notícias pré-carregadas para mostrar instantaneamente
+// 5️⃣ Notícias pré-carregadas
 const noticiasPreCarregadas = [
   {titulo: "Acidente no Jardim Planalto", pubDate: new Date(), tipo: "acidente", endereco: "Jardim Planalto"},
   {titulo: "Roubo no Centro", pubDate: new Date(), tipo: "roubo", endereco: "Centro"},
   {titulo: "Assassinato na Vila Santa Clara", pubDate: new Date(), tipo: "assassinato", endereco: "Vila Santa Clara"}
 ];
-
-// Adiciona pré-carregadas imediatamente
 noticiasPreCarregadas.forEach(n => {
   geocodeEndereco(n.endereco).then(coords => {
     if(coords) adicionarNoticia(coords.lat, coords.lon, n.titulo, n.pubDate.toLocaleString(), n.tipo);
   });
 });
 
-// 6️⃣ Pegar notícias
+// 6️⃣ Pegar notícias RSS
 async function pegarNoticiasRSS(){
   const proxy = "https://api.allorigins.win/get?url=";
   let noticias24h = [];
@@ -122,7 +120,7 @@ async function geocodeEndereco(endereco){
   return null;
 }
 
-// 8️⃣ IA para detectar tipo de ocorrência
+// 8️⃣ IA para detectar tipo
 function detectarTipoIA(titulo){
   titulo = titulo.toLowerCase();
   if(titulo.includes("acidente")) return "acidente";
@@ -133,11 +131,9 @@ function detectarTipoIA(titulo){
 
 // 9️⃣ IA para extrair endereço ou bairro
 function extrairLocalIA(titulo){
-  // Endereço
   let match = titulo.match(/(Rua|Avenida|Av|Praça|Travessa|Alameda) [\w\s]+/i);
   if(match) return match[0];
 
-  // Bairro
   let bairros = ["Centro","Vila Santa Clara","Jardim Planalto","Vila Lemos","Jardim Paulista"];
   for(let b of bairros){
     if(titulo.includes(b)) return b;
@@ -145,7 +141,23 @@ function extrairLocalIA(titulo){
   return null;
 }
 
-// 10️⃣ Atualizar mapa
+// 10️⃣ Função de análise de notícias por IA
+async function analisarNoticiasIA(noticias){
+  for(const n of noticias){
+    let local = extrairLocalIA(n.titulo);
+    if(!local) continue;
+
+    let coords = await geocodeEndereco(local);
+    if(!coords) continue;
+
+    let tipo = detectarTipoIA(n.titulo);
+    if(tipo==="outro") continue;
+
+    adicionarNoticia(coords.lat, coords.lon, n.titulo, n.pubDate.toLocaleString(), tipo);
+  }
+}
+
+// 11️⃣ Atualizar mapa com 20 IAs
 async function atualizarMapaIA(){
   camadaCluster.clearLayers();
   heatLayer.setLatLngs([]);
@@ -157,18 +169,12 @@ async function atualizarMapaIA(){
     return;
   }
 
-  for(const n of noticias){
-    let local = extrairLocalIA(n.titulo);
-    if(!local) continue; // só se tiver endereço ou bairro
-
-    let coords = await geocodeEndereco(local);
-    if(!coords) continue;
-
-    let tipo = detectarTipoIA(n.titulo);
-    if(tipo==="outro") continue;
-
-    adicionarNoticia(coords.lat, coords.lon, n.titulo, n.pubDate.toLocaleString(), tipo);
+  // Simular 20 IAs processando as notícias
+  let iaPromises = [];
+  for(let i=0;i<20;i++){
+    iaPromises.push(analisarNoticiasIA(noticias));
   }
+  await Promise.all(iaPromises);
 }
 
 // 🔄 Atualiza a cada 5 segundos
