@@ -24,6 +24,7 @@ header {
   align-items: center;
   border-bottom: 2px solid #00ff9c;
   animation: glow 1.5s infinite alternate;
+  flex-shrink: 0;
 }
 
 @keyframes glow {
@@ -33,6 +34,9 @@ header {
 
 #conteudo {
   flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 iframe {
@@ -49,11 +53,18 @@ iframe {
   font-size: 14px;
   text-align: center;
   animation: alertGlow 1s infinite alternate;
+  flex-shrink: 0;
 }
 
 @keyframes alertGlow {
   from { text-shadow: 0 0 5px red; }
   to { text-shadow: 0 0 20px red; }
+}
+
+noscript {
+  color: yellow;
+  font-size: 16px;
+  text-align: center;
 }
 </style>
 </head>
@@ -69,6 +80,9 @@ iframe {
 
 <div id="conteudo">
   <iframe src="https://globe.adsbexchange.com/?mil" title="Mapa de Aviões Militares"></iframe>
+  <noscript>
+    ⚠ JavaScript está desativado. Para ver a hora e o mapa, habilite o JavaScript no navegador.
+  </noscript>
 </div>
 
 <div id="alerta">
