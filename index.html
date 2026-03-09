@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Franca SP - Ocorrências Policiais IA</title>
+<title>Franca SP - Ocorrências Policiais</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <style>
@@ -23,7 +23,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 var camadaOcorrencias = L.layerGroup().addTo(map);
 var camadaAlertasIA = L.layerGroup().addTo(map);
 
-// === ÍCONE REALISTA DE OCORRÊNCIA POLICIAL ===
+// === ÍCONE VERMELHO DE OCORRÊNCIA POLICIAL ===
 var iconePolicial = L.icon({
   iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/3/33/Red_circle_icon.svg', // vermelho realista
   iconSize: [25,25]
