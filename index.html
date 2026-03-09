@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Radar de Ocorrências Franca – PRO</title>
+<title>Radar de Ocorrências Franca – Funcional</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -19,10 +19,9 @@ body { margin:0; font-family:Arial; background:#111; color:white; }
 @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.3); } 100% { transform: scale(1); } }
 </style>
 </head>
-
 <body>
 
-<h2 style="padding:10px">Radar de Ocorrências – Franca PRO</h2>
+<h2 style="padding:10px">Radar de Ocorrências – Franca FUNCIONAL</h2>
 
 <div id="map"></div>
 <div id="painel">
@@ -34,20 +33,13 @@ body { margin:0; font-family:Arial; background:#111; color:white; }
 
 <script>
 // --- Inicializa mapa ---
-const map = L.map('map').setView([-20.538,-47.401],13);
+const map = L.map('map').setView([-20.538, -47.401],13);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-// --- Feeds RSS (segurança) ---
+// --- Feeds RSS de teste ---
 const feeds = [
 "https://g1.globo.com/sp/franca-jacarei/rss.xml",
-"https://g1.globo.com/sp/ribeirao-preto-franca/rss.xml",
-"https://acidadeon.com/franca/rss",
-"https://www.diariodaregiao.com.br/rss/seguranca",
-"https://www.folhadaregiao.com.br/rss/policia",
-"https://www.ribeiraopretoonline.com.br/rss/seguranca",
-"https://www.jornalacidade.com.br/rss/policia",
-"https://www.estadao.com.br/rss/policia",
-"https://www.gazetadopovo.com.br/rss/seguranca"
+"https://acidadeon.com/franca/rss"
 ];
 
 // --- Tipos de crime ---
@@ -60,12 +52,20 @@ const crimeIcons = {
   "latrocínio": "black"
 };
 
+// --- Coordenadas aproximadas de bairros de Franca ---
+const bairrosCoords = {
+  "Centro": [-20.538, -47.400],
+  "Jardim América": [-20.540, -47.402],
+  "Vila Frezzarin": [-20.534, -47.405],
+  "Vila Real": [-20.535, -47.399],
+  "Desconhecido": [-20.538, -47.401]
+};
+
 // --- Marcadores e dados ---
 let markers = [];
 let ocorrenciasBairro = {};
-let ocorrenciasHora = {};
 
-// --- Função tipoCrime ---
+// --- Detecta tipo de crime ---
 function tipoCrime(t){
   t = t.toLowerCase();
   for(let key in crimeIcons){
@@ -99,24 +99,12 @@ async function rss(){
   return lista.slice(0,100);
 }
 
-// --- Geocoding ---
-async function geocode(text){
-  const url = "https://nominatim.openstreetmap.org/search?format=json&q=" + encodeURIComponent(text + ", Franca, SP");
-  try{
-    let r = await fetch(url);
-    let j = await r.json();
-    if(j && j.length>0) return [parseFloat(j[0].lat), parseFloat(j[0].lon)];
-  }catch(e){ console.warn("Erro geocode:", text, e); }
-  return null;
-}
-
 // --- Atualiza mapa, timeline e dashboard ---
 async function atualizar(){
   markers.forEach(m=>map.removeLayer(m));
   markers = [];
   document.getElementById("timeline").innerHTML = "";
   ocorrenciasBairro = {};
-  ocorrenciasHora = {};
 
   let noticias = await rss();
 
@@ -124,11 +112,12 @@ async function atualizar(){
     let tipo = tipoCrime(n.titulo);
     if(!tipo) continue;
 
+    // Detecta bairro via regex simples
     let match = n.titulo.match(/bairro\s([\w\s]+)/i);
     let bairro = match ? match[1].trim() : "Desconhecido";
 
-    let coords = await geocode(bairro);
-    if(!coords) coords = [-20.538 + Math.random()*0.05, -47.401 + Math.random()*0.05];
+    // Usa coordenadas fixas
+    let coords = bairrosCoords[bairro] || bairrosCoords["Desconhecido"];
 
     // Cria marcador
     let marker = L.circleMarker(coords, {
@@ -138,6 +127,7 @@ async function atualizar(){
       fillOpacity:0.9,
       className: tipo=="homicídio"||tipo=="assassinato"?"alert-marker":""
     }).addTo(map);
+
     marker.bindPopup("<b>"+n.titulo+"</b><br>"+n.data.toLocaleString("pt-BR"));
     markers.push(marker);
 
@@ -149,10 +139,8 @@ async function atualizar(){
 
     // Dashboard
     ocorrenciasBairro[bairro] = (ocorrenciasBairro[bairro]||0)+1;
-    let hora = n.data.getHours();
-    ocorrenciasHora[hora] = (ocorrenciasHora[hora]||0)+1;
 
-    // Notificação visual (alerta)
+    // Notificação sonora para crimes graves
     if(tipo=="homicídio"||tipo=="assassinato"){
       new Audio("https://www.soundjay.com/buttons/sounds/beep-07.mp3").play();
     }
@@ -180,10 +168,9 @@ function atualizarDashboard(){
   });
 }
 
-// Atualiza a cada 10 minutos
-setInterval(atualizar,600000);
+// --- Atualiza a cada 5 minutos ---
+setInterval(atualizar, 300000);
 atualizar();
-
 </script>
 </body>
 </html>
