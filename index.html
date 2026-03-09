@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Radar de Ocorrências Franca - Versão Avançada</title>
+<title>Radar de Ocorrências Franca – Avançado</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -12,29 +12,29 @@ body { margin:0; font-family:Arial; background:#111; color:white; }
 #map { height:75vh; }
 #painel { height:25vh; background:#222; overflow:auto; padding:10px; }
 .timeline-item { margin-bottom:5px; }
+.alert-marker { animation: pulse 1s infinite; }
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
 </style>
 </head>
-
 <body>
 
 <h2 style="padding:10px">Radar de Ocorrências – Franca</h2>
-
 <div id="map"></div>
-
 <div id="painel">
 <h3>Ocorrências últimas 24h</h3>
 <div id="timeline"></div>
 </div>
 
 <script>
-
 // --- Inicializa mapa ---
 const map = L.map('map').setView([-20.538,-47.401],13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png')
-  .addTo(map);
-
-// --- Feeds RSS focados em segurança ---
+// --- Feeds RSS ---
 const feeds = [
 "https://g1.globo.com/sp/franca-jacarei/rss.xml",
 "https://g1.globo.com/sp/ribeirao-preto-franca/rss.xml",
@@ -58,31 +58,39 @@ const feeds = [
 "https://www.jornalmaringa.com.br/rss/seguranca"
 ];
 
-// --- Função para determinar tipo de crime ---
+// --- Tipos de crime com ícones ---
+const crimeIcons = {
+  "acidente": "yellow",
+  "roubo": "red",
+  "assalto": "red",
+  "homicídio": "black",
+  "assassinato": "black",
+  "latrocínio": "black"
+};
+
+// --- Marcadores ---
+let markers = [];
+
+// --- Função para detectar tipo de crime ---
 function tipoCrime(t){
   t = t.toLowerCase();
-  if(t.includes("acidente")) return "yellow";
-  if(t.includes("roubo") || t.includes("assalto")) return "red";
-  if(t.includes("homicídio") || t.includes("assassinato") || t.includes("latrocínio")) return "black";
+  for(let key in crimeIcons){
+    if(t.includes(key)) return key;
+  }
   return null;
 }
 
-// --- Marcadores atuais ---
-let markers = [];
-
-// --- Função para buscar RSS ---
+// --- Busca RSS ---
 async function rss(){
   const proxy = "https://api.allorigins.win/get?url=";
   let lista = [];
   let agora = new Date();
-
   for(let f of feeds){
     try{
       let r = await fetch(proxy + encodeURIComponent(f));
       let j = await r.json();
       let xml = new DOMParser().parseFromString(j.contents,"text/xml");
       let items = xml.querySelectorAll("item");
-
       items.forEach(i=>{
         let titulo = i.querySelector("title").textContent;
         let data = new Date(i.querySelector("pubDate").textContent);
@@ -91,15 +99,13 @@ async function rss(){
           lista.push({titulo, data});
         }
       });
-    }catch(e){ console.warn("Erro no feed:", f, e); }
+    }catch(e){ console.warn("Erro feed:", f, e); }
   }
-
-  // Ordena por data decrescente
-  lista.sort((a,b) => b.data - a.data);
-  return lista.slice(0,100); // Limita a 100 ocorrências
+  lista.sort((a,b)=>b.data - a.data);
+  return lista.slice(0,100);
 }
 
-// --- Função para geocoding (Nominatim) ---
+// --- Geocoding automático (bairro detectado via título) ---
 async function geocode(text){
   const url = "https://nominatim.openstreetmap.org/search?format=json&q=" + encodeURIComponent(text + ", Franca, SP");
   try{
@@ -114,7 +120,7 @@ async function geocode(text){
 
 // --- Atualiza mapa e timeline ---
 async function atualizar(){
-  markers.forEach(m => map.removeLayer(m));
+  markers.forEach(m=>map.removeLayer(m));
   markers = [];
   document.getElementById("timeline").innerHTML = "";
 
@@ -124,25 +130,26 @@ async function atualizar(){
     let tipo = tipoCrime(n.titulo);
     if(!tipo) continue;
 
-    // tenta extrair bairro ou endereço do título
-    let endereco = n.titulo.split(/–|-|:/)[1] || "Franca, SP";
+    // tenta extrair bairro do título
+    let match = n.titulo.match(/bairro\s([\w\s]+)/i);
+    let endereco = match ? match[1] : "Franca, SP";
 
     let coords = await geocode(endereco);
-    if(!coords){
-      // fallback aleatório
-      coords = [-20.538 + Math.random()*0.05, -47.401 + Math.random()*0.05];
-    }
+    if(!coords) coords = [-20.538 + Math.random()*0.05, -47.401 + Math.random()*0.05];
 
+    // cria marcador com ícone e alerta visual
     let marker = L.circleMarker(coords, {
-      radius: 8,
-      color: tipo,
-      fillColor: tipo,
-      fillOpacity: 0.9
+      radius: tipo=="acidente"?6:8,
+      color: crimeIcons[tipo],
+      fillColor: crimeIcons[tipo],
+      fillOpacity:0.9,
+      className: tipo=="homicídio"||tipo=="assassinato"?"alert-marker":""
     }).addTo(map);
 
     marker.bindPopup("<b>"+n.titulo+"</b><br>"+n.data.toLocaleString("pt-BR"));
     markers.push(marker);
 
+    // adiciona à timeline
     let item = document.createElement("div");
     item.className = "timeline-item";
     item.innerHTML = n.data.toLocaleString("pt-BR")+" - "+n.titulo;
@@ -151,10 +158,9 @@ async function atualizar(){
 }
 
 // Atualiza a cada 10 minutos
-setInterval(atualizar, 600000);
+setInterval(atualizar,600000);
 atualizar();
 
 </script>
-
 </body>
 </html>
