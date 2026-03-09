@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Franca SP - Monitoramento Urbano</title>
+<title>Franca SP - IA e Ocorrências Policiais</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <style>
@@ -33,7 +33,7 @@ function gerarCarros(){
   for(let i=0;i<50;i++){
     let lat = -20.539 + (Math.random()-0.5)*0.05;
     let lon = -47.401 + (Math.random()-0.5)*0.05;
-    let densidade = Math.floor(Math.random()*10)+1; // 1 a 10
+    let densidade = Math.floor(Math.random()*10)+1;
     carros.push({lat, lon, densidade});
     L.circle([lat,lon], {radius: densidade*20, color:'blue', fillOpacity:0.3}).addTo(camadaCarros)
       .bindPopup(`Tráfego: ${densidade}`);
@@ -55,7 +55,7 @@ function gerarOcorrencias(){
   }
 }
 
-// === SIMULAÇÃO AERONAVES MILITARES ===
+// === AERONAVES MILITARES ===
 var aeronaves = [];
 function detectarMilitares(){
   fetch("https://opensky-network.org/api/states/all")
@@ -77,20 +77,17 @@ function detectarMilitares(){
 // === IAs ANALISANDO TUDO ===
 function atualizarAlertasIA(){
   camadaAlertas.clearLayers();
+
+  // 120 IAs gerais
   for(let i=1;i<=120;i++){
-    // Cada IA escolhe uma região aleatória (simulação)
     let lat = -20.539 + (Math.random()-0.5)*0.05;
     let lon = -47.401 + (Math.random()-0.5)*0.05;
 
-    // Regras simples:
     let alerta="normal";
     let cor="green";
 
-    // Tráfego pesado
     let carrosNaRegiao = carros.filter(c=>Math.abs(c.lat-lat)<0.01 && Math.abs(c.lon-lon)<0.01);
     let densidadeTotal = carrosNaRegiao.reduce((acc,c)=>acc+c.densidade,0);
-
-    // Ocorrência na região
     let occNaRegiao = ocorrencias.filter(o=>Math.abs(o.lat-lat)<0.01 && Math.abs(o.lon-lon)<0.01);
 
     if(densidadeTotal>20 || occNaRegiao.length>0){
@@ -106,6 +103,17 @@ function atualizarAlertasIA(){
         .bindPopup(`IA ${i} detectou: ${alerta}<br>Tráfego: ${densidadeTotal}, Ocorrências: ${occNaRegiao.length}`);
     }
   }
+
+  // 9 IAs adicionais detectando somente ocorrências policiais
+  for(let i=1;i<=9;i++){
+    let occ = ocorrencias[Math.floor(Math.random()*ocorrencias.length)];
+    if(occ){
+      let lat = occ.lat + (Math.random()-0.5)*0.001;
+      let lon = occ.lon + (Math.random()-0.5)*0.001;
+      L.circleMarker([lat,lon], {radius:7, color:'red'}).addTo(camadaAlertas)
+        .bindPopup(`IA policial ${i} detectou ocorrência!`);
+    }
+  }
 }
 
 // === LOOP DE ATUALIZAÇÃO ===
@@ -118,7 +126,3 @@ setInterval(gerarCarros,10000);
 setInterval(gerarOcorrencias,15000);
 setInterval(detectarMilitares,20000);
 setInterval(atualizarAlertasIA,5000);
-
-</script>
-</body>
-</html>
