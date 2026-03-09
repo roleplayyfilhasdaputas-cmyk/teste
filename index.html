@@ -3,7 +3,7 @@
 
 <head>
 
-<title>Monitor Franca</title>
+<title>Centro de Monitoramento Franca</title>
 
 <link rel="stylesheet"
 href="https://unpkg.com/leaflet/dist/leaflet.css"/>
@@ -14,9 +14,9 @@ href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
 body{
 margin:0;
-font-family:Arial;
 background:#111;
 color:white;
+font-family:Arial;
 }
 
 #map{
@@ -35,7 +35,7 @@ background:#222;
 <body>
 
 <h2 style="padding:10px">
-Monitoramento Franca SP
+Centro de Monitoramento - Franca SP
 </h2>
 
 <div id="map"></div>
@@ -48,7 +48,9 @@ Monitoramento Franca SP
 
 <div>🚁 helicópteros estimados: <span id="heli">0</span></div>
 
-<div>🚨 alerta IA: <span id="alerta">normal</span></div>
+<div>🤖 análise IA: <span id="ia">analisando...</span></div>
+
+<div>🚨 alerta: <span id="alerta">normal</span></div>
 
 </div>
 
@@ -63,14 +65,14 @@ L.tileLayer(
 ).addTo(map)
 
 
-// marcador da cidade
+// MARCADOR DA CIDADE
 
 L.marker([-20.539,-47.401])
 .addTo(map)
 .bindPopup("Franca SP")
 
 
-// grupo de aeronaves
+// CAMADA AERONAVES
 
 var camadaAeronaves = L.layerGroup().addTo(map)
 
@@ -78,12 +80,12 @@ var total=0
 var helic=0
 
 
-// CLIMA
+// CLIMA (API OPENWEATHER)
 
 function clima(){
 
 fetch(
-"https://api.openweathermap.org/data/2.5/weather?q=Franca,BR&appid=SUAKEY&units=metric"
+"https://api.openweathermap.org/data/2.5/weather?q=Franca,BR&appid=18c0069e134314e6d309f559d1e942fd&units=metric"
 )
 
 .then(r=>r.json())
@@ -101,7 +103,7 @@ temp+"°C "+desc
 .catch(()=>{
 
 document.getElementById("clima").innerText =
-"API clima indisponível"
+"erro ao carregar clima"
 
 })
 
@@ -161,22 +163,36 @@ document.getElementById("air").innerText="API bloqueada"
 }
 
 
-// IA
+// IA SIMPLES
 
 function analisarIA(){
 
+var analise="atividade normal"
+
 var alerta="normal"
 
-if(helic>5) alerta="atividade aérea incomum"
+if(helic>5){
 
-if(total>50) alerta="tráfego aéreo alto"
+analise="várias aeronaves em baixa altitude"
+alerta="atenção"
+
+}
+
+if(total>50){
+
+analise="tráfego aéreo elevado"
+alerta="atenção"
+
+}
+
+document.getElementById("ia").innerText=analise
 
 document.getElementById("alerta").innerText=alerta
 
 }
 
 
-// iniciar
+// INICIAR
 
 clima()
 
