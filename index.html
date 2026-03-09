@@ -3,7 +3,7 @@
 
 <head>
 
-<title>Centro Inteligente de Monitoramento - Franca</title>
+<title>Monitor Franca</title>
 
 <link rel="stylesheet"
 href="https://unpkg.com/leaflet/dist/leaflet.css"/>
@@ -14,24 +14,18 @@ href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
 body{
 margin:0;
-background:#0a0a0a;
-color:white;
 font-family:Arial;
+background:#111;
+color:white;
 }
 
 #map{
-height:70vh;
+height:75vh;
 }
 
 #painel{
-padding:15px;
-background:#111;
-}
-
-.grid{
-display:grid;
-grid-template-columns:repeat(2,1fr);
-gap:6px;
+padding:10px;
+background:#222;
 }
 
 </style>
@@ -41,54 +35,20 @@ gap:6px;
 <body>
 
 <h2 style="padding:10px">
-Centro Inteligente de Monitoramento — Franca SP
+Monitoramento Franca SP
 </h2>
 
 <div id="map"></div>
 
 <div id="painel">
 
-<h3>📊 Dados ao vivo</h3>
+<div>🌧️ clima: <span id="clima">carregando...</span></div>
 
-<div>🌧️ Clima: <span id="clima"></span></div>
-<div>🚁 Helicópteros: <span id="heli"></span></div>
-<div>🚓 Helicópteros policiais: <span id="heliPol"></span></div>
-<div>✈️ Aeronaves militares: <span id="mil"></span></div>
-<div>✈️ Aeronaves totais: <span id="air"></span></div>
+<div>✈️ aeronaves detectadas: <span id="air">0</span></div>
 
-<hr>
+<div>🚁 helicópteros estimados: <span id="heli">0</span></div>
 
-<h3>🤖 IAs analisando</h3>
-
-<div class="grid">
-
-<div>IA1 helicópteros: <span id="ia1"></span></div>
-<div>IA2 helicóptero policial: <span id="ia2"></span></div>
-<div>IA3 aeronaves militares: <span id="ia3"></span></div>
-<div>IA4 tráfego: <span id="ia4"></span></div>
-<div>IA5 acidentes: <span id="ia5"></span></div>
-<div>IA6 clima severo: <span id="ia6"></span></div>
-<div>IA7 tráfego aéreo: <span id="ia7"></span></div>
-<div>IA8 anomalia urbana: <span id="ia8"></span></div>
-<div>IA9 densidade aérea: <span id="ia9"></span></div>
-<div>IA10 alerta cidade: <span id="ia10"></span></div>
-
-<div>IA11 chuva intensa: <span id="ia11"></span></div>
-<div>IA12 calor extremo: <span id="ia12"></span></div>
-<div>IA13 atividade aérea baixa: <span id="ia13"></span></div>
-<div>IA14 drones possíveis: <span id="ia14"></span></div>
-<div>IA15 padrão incomum: <span id="ia15"></span></div>
-<div>IA16 movimentação noturna: <span id="ia16"></span></div>
-<div>IA17 helicóptero patrulha: <span id="ia17"></span></div>
-<div>IA18 alerta tráfego: <span id="ia18"></span></div>
-<div>IA19 densidade urbana: <span id="ia19"></span></div>
-<div>IA20 análise geral: <span id="ia20"></span></div>
-
-</div>
-
-<hr>
-
-<h2>🚨 ALERTA FINAL: <span id="alerta"></span></h2>
+<div>🚨 alerta IA: <span id="alerta">normal</span></div>
 
 </div>
 
@@ -96,96 +56,26 @@ Centro Inteligente de Monitoramento — Franca SP
 
 // MAPA
 
-var map=L.map('map')
-.setView([-20.539,-47.401],13)
+var map = L.map('map').setView([-20.539,-47.401],13)
 
 L.tileLayer(
 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
 ).addTo(map)
 
 
-// VARIÁVEIS
+// marcador da cidade
 
+L.marker([-20.539,-47.401])
+.addTo(map)
+.bindPopup("Franca SP")
+
+
+// grupo de aeronaves
+
+var camadaAeronaves = L.layerGroup().addTo(map)
+
+var total=0
 var helic=0
-var heliPol=0
-var militares=0
-var totalAeronaves=0
-var temperatura=0
-var chuva=false
-
-
-// AERONAVES
-
-function detectarAeronaves(){
-
-fetch("https://opensky-network.org/api/states/all")
-
-.then(r=>r.json())
-
-.then(d=>{
-
-helic=0
-heliPol=0
-militares=0
-totalAeronaves=0
-
-d.states.forEach(a=>{
-
-var callsign=a[1]
-var lat=a[6]
-var lon=a[5]
-var alt=a[7]
-
-if(lat && lon){
-
-totalAeronaves++
-
-if(alt<3000){
-
-helic++
-
-}
-
-if(callsign){
-
-callsign=callsign.trim()
-
-if(
-callsign.startsWith("POL") ||
-callsign.startsWith("PRF") ||
-callsign.startsWith("GRAER")
-){
-
-heliPol++
-
-}
-
-if(
-callsign.startsWith("FAB") ||
-callsign.startsWith("USAF") ||
-callsign.startsWith("NATO")
-){
-
-militares++
-
-}
-
-}
-
-}
-
-})
-
-document.getElementById("heli").innerText=helic
-document.getElementById("heliPol").innerText=heliPol
-document.getElementById("mil").innerText=militares
-document.getElementById("air").innerText=totalAeronaves
-
-analisarIA()
-
-})
-
-}
 
 
 // CLIMA
@@ -200,15 +90,71 @@ fetch(
 
 .then(d=>{
 
-temperatura=d.main.temp
-
+var temp=d.main.temp
 var desc=d.weather[0].description
-var tipo=d.weather[0].main
 
-document.getElementById("clima").innerText=
-temperatura+"°C "+desc
+document.getElementById("clima").innerText =
+temp+"°C "+desc
 
-chuva=(tipo=="Rain")
+})
+
+.catch(()=>{
+
+document.getElementById("clima").innerText =
+"API clima indisponível"
+
+})
+
+}
+
+
+// AERONAVES
+
+function detectarAeronaves(){
+
+fetch("https://opensky-network.org/api/states/all")
+
+.then(r=>r.json())
+
+.then(d=>{
+
+camadaAeronaves.clearLayers()
+
+total=0
+helic=0
+
+d.states.forEach(a=>{
+
+var lat=a[6]
+var lon=a[5]
+var alt=a[7]
+
+if(lat && lon){
+
+total++
+
+if(alt<3000) helic++
+
+L.circleMarker([lat,lon],{
+radius:4,
+color:"yellow"
+})
+.addTo(camadaAeronaves)
+
+}
+
+})
+
+document.getElementById("air").innerText=total
+document.getElementById("heli").innerText=helic
+
+analisarIA()
+
+})
+
+.catch(()=>{
+
+document.getElementById("air").innerText="API bloqueada"
 
 })
 
@@ -219,122 +165,24 @@ chuva=(tipo=="Rain")
 
 function analisarIA(){
 
-// IA1 helicópteros
+var alerta="normal"
 
-document.getElementById("ia1").innerText=
-helic>3?"atividade aérea incomum":"normal"
+if(helic>5) alerta="atividade aérea incomum"
 
-// IA2 helicóptero policial
+if(total>50) alerta="tráfego aéreo alto"
 
-document.getElementById("ia2").innerText=
-heliPol>0?"patrulha ativa":"normal"
-
-// IA3 militar
-
-document.getElementById("ia3").innerText=
-militares>2?"atividade militar detectada":"normal"
-
-// IA4 tráfego
-
-document.getElementById("ia4").innerText="normal"
-
-// IA5 acidentes
-
-document.getElementById("ia5").innerText="sem eventos"
-
-// IA6 clima
-
-document.getElementById("ia6").innerText=
-chuva?"chuva detectada":"normal"
-
-// IA7 tráfego aéreo
-
-document.getElementById("ia7").innerText=
-totalAeronaves>20?"alto tráfego":"normal"
-
-// IA8 anomalia urbana
-
-document.getElementById("ia8").innerText=
-helic>5?"anomalia aérea":"normal"
-
-// IA9 densidade aérea
-
-document.getElementById("ia9").innerText=
-totalAeronaves>40?"muito alto":"normal"
-
-// IA10 cidade
-
-document.getElementById("ia10").innerText=
-(helic>3||militares>1)?"atenção":"normal"
-
-// IA11 chuva forte
-
-document.getElementById("ia11").innerText=
-chuva?"chuva ativa":"normal"
-
-// IA12 calor
-
-document.getElementById("ia12").innerText=
-temperatura>35?"calor extremo":"normal"
-
-// IA13 baixa altitude
-
-document.getElementById("ia13").innerText=
-helic>2?"muitas aeronaves baixas":"normal"
-
-// IA14 drones
-
-document.getElementById("ia14").innerText=
-helic>6?"possível drone/helicóptero":"normal"
-
-// IA15 padrão
-
-document.getElementById("ia15").innerText=
-(totalAeronaves>30)?"padrão incomum":"normal"
-
-// IA16 noite
-
-var hora=new Date().getHours()
-
-document.getElementById("ia16").innerText=
-hora>22?"atividade noturna":"normal"
-
-// IA17 patrulha
-
-document.getElementById("ia17").innerText=
-heliPol>1?"patrulha intensificada":"normal"
-
-// IA18 trânsito
-
-document.getElementById("ia18").innerText="normal"
-
-// IA19 densidade urbana
-
-document.getElementById("ia19").innerText=
-totalAeronaves>25?"cidade movimentada":"normal"
-
-// IA20 geral
-
-var nivel="normal"
-
-if(helic>5 || militares>2)
-nivel="atenção"
-
-if(militares>4)
-nivel="alerta"
-
-document.getElementById("ia20").innerText=nivel
-
-document.getElementById("alerta").innerText=nivel
+document.getElementById("alerta").innerText=alerta
 
 }
 
 
-// ATUALIZAÇÃO
+// iniciar
 
 clima()
 
-setInterval(detectarAeronaves,15000)
+detectarAeronaves()
+
+setInterval(detectarAeronaves,20000)
 
 </script>
 
