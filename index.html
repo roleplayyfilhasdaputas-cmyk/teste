@@ -17,7 +17,7 @@
 </head>
 <body>
 
-<h2 style="padding:10px">Mapa de Ocorrências - Franca SP</h2>
+<h2 style="padding:10px">Mapa de Ocorrências - Franca SP (últimas 24h)</h2>
 
 <div id="map"></div>
 <div id="painel">
@@ -25,7 +25,7 @@
 </div>
 
 <script>
-// 1️⃣ Criar mapa
+// 1️⃣ Criar mapa centralizado em Franca, SP
 var map = L.map('map').setView([-20.539, -47.401], 13);
 
 // 2️⃣ Tile Layer
@@ -53,27 +53,31 @@ function adicionarOcorrencia(lat, lon, tipo, resumo, horario){
   painel.appendChild(span);
 }
 
-// 5️⃣ Exemplo de ocorrência (substituir depois pelos dados da IA)
-adicionarOcorrencia(-20.5385, -47.4020, "Assalto", "Roubo a mão armada em frente ao supermercado", "09/03/2026 08:30");
-adicionarOcorrencia(-20.5400, -47.4035, "Acidente de Trânsito", "Colisão entre dois veículos na Av. Brasil", "09/03/2026 09:15");
-
-// 6️⃣ Função futura: receber dados da IA que extrai notícias
-/*
+// 5️⃣ Função para atualizar ocorrências do backend
 function atualizarOcorrenciasDoBackend(){
-  fetch('/api/ocorrencias')
+  fetch('/api/ocorrencias') // Substitua pelo endpoint do seu backend
     .then(r => r.json())
     .then(data => {
       camadaOcorrencias.clearLayers();
       document.getElementById("painel").innerHTML = "";
+
       data.forEach(o => {
         adicionarOcorrencia(o.lat, o.lon, o.tipo, o.resumo, o.horario);
       });
-    });
+    })
+    .catch(err => console.error("Erro ao atualizar ocorrências:", err));
 }
 
-// Atualizar a cada 5 minutos
-setInterval(atualizarOcorrenciasDoBackend, 300000);
-*/
+// Atualizar a cada 20 minutos (1200000 ms)
+setInterval(atualizarOcorrenciasDoBackend, 1200000);
+
+// Atualiza na primeira carga
+atualizarOcorrenciasDoBackend();
+
+// 6️⃣ Exemplos de ocorrências iniciais (para teste antes do backend)
+adicionarOcorrencia(-20.5385, -47.4020, "Assalto", "Roubo a mão armada em frente ao supermercado", "09/03/2026 08:30");
+adicionarOcorrencia(-20.5400, -47.4035, "Acidente de Trânsito", "Colisão entre dois veículos na Av. Brasil", "09/03/2026 09:15");
+
 </script>
 
 </body>
