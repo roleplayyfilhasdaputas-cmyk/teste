@@ -2,9 +2,8 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Painel de Ocorrências - Franca SP</title>
+<title>Mapa de Ocorrências - Franca SP</title>
 
-<!-- Leaflet CSS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
@@ -25,27 +24,24 @@
 </div>
 
 <script>
-// 1️⃣ Criar mapa centralizado em Franca, SP
+// 1️⃣ Mapa
 var map = L.map('map').setView([-20.539, -47.401], 13);
-
-// 2️⃣ Tile Layer
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-// 3️⃣ Camada para ocorrências
+// 2️⃣ Camada de ocorrências
 var camadaOcorrencias = L.layerGroup().addTo(map);
 
-// 4️⃣ Função para adicionar uma ocorrência no mapa
+// 3️⃣ Função para adicionar ocorrência
 function adicionarOcorrencia(lat, lon, tipo, resumo, horario){
   var marcador = L.marker([lat, lon], {icon: L.icon({
     iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
-    iconSize: [30, 30],
-    iconAnchor: [15, 30],
-    popupAnchor: [0, -30]
+    iconSize: [30,30],
+    iconAnchor: [15,30],
+    popupAnchor: [0,-30]
   })}).addTo(camadaOcorrencias);
 
   marcador.bindPopup(`<b>${tipo}</b><br>${horario}<br>${resumo}`);
 
-  // Adiciona no painel lateral
   var painel = document.getElementById("painel");
   var span = document.createElement("span");
   span.className = "ocorrencia";
@@ -53,39 +49,62 @@ function adicionarOcorrencia(lat, lon, tipo, resumo, horario){
   painel.appendChild(span);
 }
 
-// 5️⃣ Função para atualizar ocorrências do backend
-function atualizarOcorrenciasDoBackend(){
-  fetch('/api/ocorrencias') // Substitua pelo endpoint do seu backend
-    .then(r => r.json())
-    .then(data => {
-      camadaOcorrencias.clearLayers();
-      document.getElementById("painel").innerHTML = "";
+// 4️⃣ Função para pegar notícias RSS das últimas 24h
+async function pegarNoticiasRSS(){
+  const rssURL = "https://g1.globo.com/rss/sp/franca-jacarei/index.xml";
+  const proxy = "https://api.allorigins.win/get?url=";
+  try {
+    const res = await fetch(proxy + encodeURIComponent(rssURL));
+    const data = await res.json();
+    const parser = new DOMParser();
+    const xml = parser.parseFromString(data.contents, "application/xml");
+    const items = xml.querySelectorAll("item");
+    const noticias24h = [];
 
-      if(data.length === 0){
-        document.getElementById("painel").innerHTML = "<span class='ocorrencia'>Nenhuma ocorrência nas últimas 24h</span>";
+    const agora = new Date();
+    items.forEach(item => {
+      const title = item.querySelector("title").textContent;
+      const link = item.querySelector("link").textContent;
+      const pubDate = new Date(item.querySelector("pubDate").textContent);
+
+      // Filtra últimas 24h
+      if ((agora - pubDate)/(1000*60*60) <= 24) {
+        noticias24h.push({title, link, pubDate});
       }
-
-      data.forEach(o => {
-        adicionarOcorrencia(o.lat, o.lon, o.tipo, o.resumo, o.horario);
-      });
-    })
-    .catch(err => {
-      console.error("Erro ao atualizar ocorrências:", err);
-      document.getElementById("painel").innerHTML = "<span class='ocorrencia'>Erro ao carregar ocorrências</span>";
     });
+    return noticias24h;
+  } catch(e) {
+    console.error("Erro ao pegar RSS:", e);
+    return [];
+  }
 }
 
-// Atualizar a cada 20 minutos (1200000 ms)
-setInterval(atualizarOcorrenciasDoBackend, 1200000);
+// 5️⃣ Simular geocoding e adicionar ao mapa
+async function atualizarMapa() {
+  camadaOcorrencias.clearLayers();
+  document.getElementById("painel").innerHTML = "";
+
+  const noticias = await pegarNoticiasRSS();
+
+  if(noticias.length === 0){
+    document.getElementById("painel").innerHTML = "<span class='ocorrencia'>Nenhuma ocorrência nas últimas 24h</span>";
+    return;
+  }
+
+  noticias.forEach(n => {
+    // Simula latitude/longitude aleatória próxima ao centro de Franca
+    const lat = -20.539 + (Math.random()-0.5)/100;
+    const lon = -47.401 + (Math.random()-0.5)/100;
+    adicionarOcorrencia(lat, lon, "Notícia", n.title, n.pubDate.toLocaleString());
+  });
+}
+
+// Atualiza a cada 20 minutos
+setInterval(atualizarMapa, 1200000);
 
 // Atualiza na primeira carga
-atualizarOcorrenciasDoBackend();
-
-// 6️⃣ Exemplo de ocorrência inicial (opcional, para teste antes do backend)
-adicionarOcorrencia(-20.5385, -47.4020, "Assalto", "Roubo a mão armada em frente ao supermercado", "09/03/2026 08:30");
-adicionarOcorrencia(-20.5400, -47.4035, "Acidente de Trânsito", "Colisão entre dois veículos na Av. Brasil", "09/03/2026 09:15");
+atualizarMapa();
 
 </script>
-
 </body>
 </html>
