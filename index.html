@@ -2,20 +2,22 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Painel Militar</title>
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monitoramento de Satélite Militar</title>
 <style>
+/* --- Estilo Geral --- */
 body {
   margin: 0;
   font-family: 'Courier New', monospace;
-  background: #050505;
+  background: #010101;
   color: #00ff9c;
   display: flex;
   flex-direction: column;
   height: 100vh;
+  overflow: hidden;
 }
 
+/* --- Cabeçalho --- */
 header {
   background: #111;
   padding: 12px 20px;
@@ -24,7 +26,6 @@ header {
   align-items: center;
   border-bottom: 2px solid #00ff9c;
   animation: glow 1.5s infinite alternate;
-  flex-shrink: 0;
 }
 
 @keyframes glow {
@@ -32,19 +33,56 @@ header {
   to { box-shadow: 0 0 20px #00ff9c; }
 }
 
+/* --- Conteúdo principal --- */
 #conteudo {
   flex: 1;
+  position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
+  overflow: hidden;
 }
 
-iframe {
-  width: 100%;
-  height: 100%;
-  border: none;
+/* --- Radar animado --- */
+#radar {
+  width: 80vmin;
+  height: 80vmin;
+  border: 2px solid #00ff9c;
+  border-radius: 50%;
+  position: relative;
+  animation: rotateRadar 5s linear infinite;
+  box-shadow: 0 0 20px #00ff9c;
 }
 
+@keyframes rotateRadar {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* --- Pontos de satélite --- */
+.satellite {
+  width: 8px;
+  height: 8px;
+  background: #ff3c00;
+  border-radius: 50%;
+  position: absolute;
+  box-shadow: 0 0 10px #ff3c00;
+}
+
+/* --- Informações dos satélites --- */
+#painelDados {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  background: rgba(0,0,0,0.7);
+  border: 1px solid #00ff9c;
+  padding: 10px;
+  max-width: 300px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* --- Alerta --- */
 #alerta {
   background: #111;
   border-top: 2px solid red;
@@ -61,37 +99,37 @@ iframe {
   to { text-shadow: 0 0 20px red; }
 }
 
-noscript {
-  color: yellow;
+/* --- Relógio --- */
+#hora {
+  font-weight: bold;
   font-size: 16px;
-  text-align: center;
 }
 </style>
 </head>
-
 <body>
 
 <header>
-  🛰 PAINEL MILITAR
-  <div>
-    🕒 <span id="hora"></span>
-  </div>
+  🛰 MONITORAMENTO DE SATÉLITE MILITAR
+  <div>🕒 <span id="hora"></span></div>
 </header>
 
 <div id="conteudo">
-  <iframe src="https://globe.adsbexchange.com/?mil" title="Mapa de Aviões Militares"></iframe>
-  <noscript>
-    ⚠ JavaScript está desativado. Para ver a hora e o mapa, habilite o JavaScript no navegador.
-  </noscript>
+  <div id="radar"></div>
+  <div id="painelDados">
+    <strong>Satélites em órbita:</strong>
+    <ul id="satLista">
+      <!-- Lista de satélites -->
+    </ul>
+  </div>
 </div>
 
 <div id="alerta">
-  ⚠ MONITORAMENTO DE AVIÕES MILITARES ATIVO
+  ⚠ MONITORAMENTO ATIVO
 </div>
 
 <script>
+// --- Relógio ---
 const hora = document.getElementById("hora");
-
 function atualizarHora() {
   const agora = new Date();
   hora.innerText = agora.toLocaleString('pt-BR', { 
@@ -104,9 +142,38 @@ function atualizarHora() {
     second: '2-digit' 
   });
 }
-
 setInterval(atualizarHora, 1000);
 atualizarHora();
+
+// --- Simulação de satélites ---
+const radar = document.getElementById("radar");
+const satLista = document.getElementById("satLista");
+
+// Exemplo de satélites fictícios
+const satelites = [
+  {nome: "Horus-1", alt: "550 km", vel: "7.6 km/s"},
+  {nome: "Orion-3", alt: "620 km", vel: "7.5 km/s"},
+  {nome: "Atlas-X", alt: "400 km", vel: "7.8 km/s"},
+  {nome: "Vega-9", alt: "720 km", vel: "7.4 km/s"}
+];
+
+// Adiciona os satélites ao radar e à lista
+satelites.forEach((sat, index) => {
+  // Criar ponto no radar
+  const ponto = document.createElement("div");
+  ponto.classList.add("satellite");
+  // Posicionamento aleatório dentro do radar
+  const angle = Math.random() * 2 * Math.PI;
+  const radius = Math.random() * (radar.offsetWidth / 2 - 10);
+  ponto.style.left = `calc(50% + ${radius * Math.cos(angle)}px - 4px)`;
+  ponto.style.top = `calc(50% + ${radius * Math.sin(angle)}px - 4px)`;
+  radar.appendChild(ponto);
+
+  // Adiciona à lista de dados
+  const li = document.createElement("li");
+  li.innerText = `${sat.nome} — Alt: ${sat.alt}, Vel: ${sat.vel}`;
+  satLista.appendChild(li);
+});
 </script>
 
 </body>
