@@ -37,7 +37,7 @@ var camadaOcorrencias = L.layerGroup().addTo(map);
 // 4️⃣ Função para adicionar uma ocorrência no mapa
 function adicionarOcorrencia(lat, lon, tipo, resumo, horario){
   var marcador = L.marker([lat, lon], {icon: L.icon({
-    iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png', // ícone vermelho de alerta
+    iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
     iconSize: [30, 30],
     iconAnchor: [15, 30],
     popupAnchor: [0, -30]
@@ -61,11 +61,18 @@ function atualizarOcorrenciasDoBackend(){
       camadaOcorrencias.clearLayers();
       document.getElementById("painel").innerHTML = "";
 
+      if(data.length === 0){
+        document.getElementById("painel").innerHTML = "<span class='ocorrencia'>Nenhuma ocorrência nas últimas 24h</span>";
+      }
+
       data.forEach(o => {
         adicionarOcorrencia(o.lat, o.lon, o.tipo, o.resumo, o.horario);
       });
     })
-    .catch(err => console.error("Erro ao atualizar ocorrências:", err));
+    .catch(err => {
+      console.error("Erro ao atualizar ocorrências:", err);
+      document.getElementById("painel").innerHTML = "<span class='ocorrencia'>Erro ao carregar ocorrências</span>";
+    });
 }
 
 // Atualizar a cada 20 minutos (1200000 ms)
@@ -74,7 +81,7 @@ setInterval(atualizarOcorrenciasDoBackend, 1200000);
 // Atualiza na primeira carga
 atualizarOcorrenciasDoBackend();
 
-// 6️⃣ Exemplos de ocorrências iniciais (para teste antes do backend)
+// 6️⃣ Exemplo de ocorrência inicial (opcional, para teste antes do backend)
 adicionarOcorrencia(-20.5385, -47.4020, "Assalto", "Roubo a mão armada em frente ao supermercado", "09/03/2026 08:30");
 adicionarOcorrencia(-20.5400, -47.4035, "Acidente de Trânsito", "Colisão entre dois veículos na Av. Brasil", "09/03/2026 09:15");
 
