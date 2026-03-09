@@ -1,1 +1,159 @@
-<!DOCTYPE html> <html lang="pt-br"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1"> <title>Painel Militar</title> <style> body { margin: 0; font-family: 'Courier New', monospace; background: #050505; color: #00ff9c; display: flex; flex-direction: column; height: 100vh; } header { background: #111; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #00ff9c; animation: glow 1.5s infinite alternate; flex-shrink: 0; } @keyframes glow { from { box-shadow: 0 0 10px #00ff9c; } to { box-shadow: 0 0 20px #00ff9c; } } #conteudo { flex: 1; display: flex; justify-content: center; align-items: center; } iframe { width: 100%; height: 100%; border: none; } #alerta { background: #111; border-top: 2px solid red; color: red; padding: 8px; font-size: 14px; text-align: center; animation: alertGlow 1s infinite alternate; flex-shrink: 0; } @keyframes alertGlow { from { text-shadow: 0 0 5px red; } to { text-shadow: 0 0 20px red; } } noscript { color: yellow; font-size: 16px; text-align: center; } </style> </head> <body> <header> 🛰 PAINEL MILITAR <div> 🕒 <span id="hora"></span> </div> </header> <div id="conteudo"> <iframe src="https://globe.adsbexchange.com/?mil" title="Mapa de Aviões Militares"></iframe> <noscript> ⚠ JavaScript está desativado. Para ver a hora e o mapa, habilite o JavaScript no navegador. </noscript> </div> <div id="alerta"> ⚠ MONITORAMENTO DE AVIÕES MILITARES ATIVO </div> <script> const hora = document.getElementById("hora"); function atualizarHora() { const agora = new Date(); hora.innerText = agora.toLocaleString('pt-BR', { hour12: false, day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }); } setInterval(atualizarHora, 1000); atualizarHora(); </script> </body> </html>
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel Militar</title>
+<style>
+/* ====== FONTE DIGITAL (opcional, estilo relógio HUD) ====== */
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+/* ====== RESET E ESTILO BASE ====== */
+body {
+    margin: 0;
+    font-family: 'Share Tech Mono', monospace;
+    background: radial-gradient(circle at center, #050505, #000000 80%);
+    color: #00ff9c;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+    position: relative;
+}
+
+/* ====== LINHAS DE VARREDURA ====== */
+body::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+        to bottom,
+        rgba(0,255,156,0.05),
+        rgba(0,255,156,0.05) 1px,
+        transparent 1px,
+        transparent 3px
+    );
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* ====== CABEÇALHO ====== */
+header {
+    background: #111;
+    padding: 12px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #00ff9c;
+    box-shadow: inset 0 0 10px #00ff9c;
+    animation: glow 1.5s infinite alternate;
+    flex-shrink: 0;
+    z-index: 2;
+    position: relative;
+}
+@keyframes glow {
+    from { box-shadow: inset 0 0 10px #00ff9c; }
+    to { box-shadow: inset 0 0 20px #00ff9c; }
+}
+
+/* ====== RELÓGIO ====== */
+#hora {
+    font-family: 'Share Tech Mono', monospace;
+    text-shadow: 0 0 5px #00ff9c, 0 0 10px #00ff9c;
+    animation: flicker 1.5s infinite alternate;
+}
+@keyframes flicker {
+    0% { opacity: 1; }
+    50% { opacity: 0.8; }
+    100% { opacity: 1; }
+}
+
+/* ====== CONTEÚDO CENTRAL ====== */
+#conteudo {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2;
+    position: relative;
+}
+iframe {
+    width: 90%;
+    height: 80vh;
+    border: 2px solid #00ff9c;
+    box-shadow: 0 0 15px #00ff9c inset;
+    border-radius: 4px;
+}
+
+/* ====== ALERTA ====== */
+#alerta {
+    background: #111;
+    border-top: 2px solid red;
+    color: red;
+    padding: 8px;
+    font-size: 14px;
+    text-align: center;
+    animation: alertGlow 1s infinite alternate;
+    box-shadow: 0 0 15px red;
+    flex-shrink: 0;
+    z-index: 2;
+    position: relative;
+}
+@keyframes alertGlow {
+    from { text-shadow: 0 0 5px red; }
+    to { text-shadow: 0 0 20px red; }
+}
+
+/* ====== NOSCRIPT ====== */
+noscript {
+    color: yellow;
+    font-size: 16px;
+    text-align: center;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* ====== TRANSIÇÃO LEVE DE BRILHO ====== */
+* {
+    transition: all 0.2s ease-in-out;
+}
+</style>
+</head>
+<body>
+<header>
+    🛰 PAINEL MILITAR
+    <div>🕒 <span id="hora"></span></div>
+</header>
+
+<div id="conteudo">
+    <iframe src="https://globe.adsbexchange.com/?mil" title="Mapa de Aviões Militares" sandbox="allow-scripts allow-same-origin" loading="lazy"></iframe>
+    <noscript>
+        ⚠ JavaScript está desativado. Para ver a hora e o mapa, habilite o JavaScript no navegador.
+    </noscript>
+</div>
+
+<div id="alerta">⚠ MONITORAMENTO DE AVIÕES MILITARES ATIVO</div>
+
+<script>
+const hora = document.getElementById("hora");
+
+function atualizarHora() {
+    const agora = new Date();
+    hora.innerText = agora.toLocaleString('pt-BR', {
+        hour12: false,
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+}
+
+setInterval(atualizarHora, 1000);
+atualizarHora();
+</script>
+</body>
+</html>
