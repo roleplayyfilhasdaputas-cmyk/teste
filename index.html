@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Mapa Avançado de Ocorrências - Franca SP</title>
+<title>Mapa de Ocorrências Real - Franca SP</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css"/>
@@ -30,7 +30,6 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
 // 2️⃣ Camadas
 var camadaCluster = L.markerClusterGroup();
-var camadaNoticias = L.layerGroup();
 var heatLayer = L.heatLayer([], {radius: 25, blur: 15, maxZoom: 17}).addTo(map);
 
 map.addLayer(camadaCluster);
@@ -51,7 +50,7 @@ function adicionarNoticia(lat, lon, titulo, horario, tipo){
   marcador.bindPopup(`<b>${tipo.toUpperCase()}</b><br>${titulo}<br>${horario}`);
   camadaCluster.addLayer(marcador);
 
-  // Adiciona no heatmap (peso 1 por ocorrência)
+  // Heatmap
   heatLayer.addLatLng([lat, lon, 1]);
 
   // Painel
@@ -62,7 +61,7 @@ function adicionarNoticia(lat, lon, titulo, horario, tipo){
   painel.appendChild(span);
 }
 
-// 4️⃣ Feeds RSS
+// 4️⃣ RSS feeds
 const feeds = [
   "https://g1.globo.com/rss/sp/franca-jacarei/index.xml",
   "https://acidadeon.com/franca/rss"
@@ -129,7 +128,6 @@ function extrairEndereco(titulo){
 // 9️⃣ Atualizar mapa
 async function atualizarMapa(){
   camadaCluster.clearLayers();
-  camadaNoticias.clearLayers();
   heatLayer.setLatLngs([]);
   document.getElementById("painel").innerHTML = "";
 
@@ -141,7 +139,7 @@ async function atualizarMapa(){
 
   for(const n of noticias){
     let endereco = extrairEndereco(n.titulo);
-    if(!endereco) continue;
+    if(!endereco) continue; // mostra apenas com endereço válido
 
     let coords = await geocodeEndereco(endereco);
     if(!coords) continue;
@@ -153,10 +151,10 @@ async function atualizarMapa(){
   }
 }
 
-//  🔄 Atualiza a cada 5 minutos
+// 🔄 Atualiza a cada 5 minutos
 setInterval(atualizarMapa, 300000);
 
-//  🔥 Carrega imediatamente
+// 🔥 Carrega imediatamente
 atualizarMapa();
 </script>
 </body>
