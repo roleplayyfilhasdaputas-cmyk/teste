@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel Militar</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: 'Courier New', monospace;
+  background: #050505;
+  color: #00ff9c;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+header {
+  background: #111;
+  padding: 12px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #00ff9c;
+  animation: glow 1.5s infinite alternate;
+}
+
+@keyframes glow {
+  from { box-shadow: 0 0 10px #00ff9c; }
+  to { box-shadow: 0 0 20px #00ff9c; }
+}
+
+#conteudo {
+  flex: 1;
+}
+
+iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+#alerta {
+  background: #111;
+  border-top: 2px solid red;
+  color: red;
+  padding: 8px;
+  font-size: 14px;
+  text-align: center;
+  animation: alertGlow 1s infinite alternate;
+}
+
+@keyframes alertGlow {
+  from { text-shadow: 0 0 5px red; }
+  to { text-shadow: 0 0 20px red; }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  🛰 PAINEL MILITAR
+  <div>
+    🕒 <span id="hora"></span>
+  </div>
+</header>
+
+<div id="conteudo">
+  <iframe src="https://globe.adsbexchange.com/?mil" title="Mapa de Aviões Militares"></iframe>
+</div>
+
+<div id="alerta">
+  ⚠ MONITORAMENTO DE AVIÕES MILITARES ATIVO
+</div>
+
+<script>
+const hora = document.getElementById("hora");
+
+function atualizarHora() {
+  const agora = new Date();
+  hora.innerText = agora.toLocaleString('pt-BR', { 
+    hour12: false, 
+    day: '2-digit', 
+    month: '2-digit', 
+    year: 'numeric', 
+    hour: '2-digit', 
+    minute: '2-digit', 
+    second: '2-digit' 
+  });
+}
+
+setInterval(atualizarHora, 1000);
+atualizarHora();
+</script>
+
+</body>
+</html>
