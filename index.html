@@ -2,84 +2,81 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Monitoramento Franca SP - Militar & IA</title>
+<title>Franca SP - IA de Alertas</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <style>
   body { margin:0; background:#111; color:white; font-family:Arial; }
-  #map { height:75vh; }
-  #painel { padding:10px; background:#222; max-height:25vh; overflow-y:auto; }
-  .ia-status { margin:3px 0; }
+  #map { height:100vh; }
 </style>
 </head>
 <body>
 
-<h2 style="padding:10px">Centro de Monitoramento - Franca SP</h2>
-
+<h2 style="padding:10px">Monitoramento Franca SP - Alertas IA</h2>
 <div id="map"></div>
-<div id="painel">
-  <div>🌧️ Clima: <span id="clima">carregando...</span></div>
-  <div>✈️ Aeronaves militares detectadas: <span id="military">0</span></div>
-  <div>🤖 Análises IA (120):</div>
-  <div id="ias"></div>
-</div>
 
 <script>
+// === MAPA ===
 var map = L.map('map').setView([-20.539,-47.401],13);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-L.marker([-20.539,-47.401]).addTo(map).bindPopup("Franca SP");
 
-// Layer para aeronaves
+// Camadas
 var camadaAeronaves = L.layerGroup().addTo(map);
+var camadaAlertas = L.layerGroup().addTo(map);
 
-// Clima
-function atualizarClima(){
-  fetch("https://api.openweathermap.org/data/2.5/weather?q=Franca,BR&appid=YOUR_API_KEY&units=metric")
-  .then(r=>r.json())
-  .then(d=>{
-    document.getElementById("clima").innerText = d.main.temp+"°C "+d.weather[0].description;
-  }).catch(()=>{ document.getElementById("clima").innerText="erro"; });
-}
-
-// Aeronaves militares
+// === DETECTAR AERONAVES MILITARES ===
+var aeronaves = [];
 function detectarMilitares(){
   fetch("https://opensky-network.org/api/states/all")
-  .then(r=>r.json())
-  .then(d=>{
-    camadaAeronaves.clearLayers();
-    let count = 0;
-    d.states.forEach(a=>{
-      let lat = a[6], lon = a[5], callsign = a[1] || "";
-      if(lat && lon && callsign.toUpperCase().includes("MIL")){
-        count++;
-        L.circleMarker([lat,lon],{radius:5,color:"red"}).addTo(camadaAeronaves)
-          .bindPopup("MIL: "+callsign);
-      }
-    });
-    document.getElementById("military").innerText = count;
-  }).catch(()=>{ document.getElementById("military").innerText="API bloqueada"; });
+    .then(r=>r.json())
+    .then(d=>{
+      camadaAeronaves.clearLayers();
+      aeronaves = [];
+      d.states.forEach(a=>{
+        let lat=a[6], lon=a[5], callsign=a[1]||"";
+        if(lat && lon && callsign.toUpperCase().includes("MIL")){
+          aeronaves.push({lat, lon, callsign, alt:a[7]});
+          L.circleMarker([lat,lon], {radius:5, color:"red"})
+            .addTo(camadaAeronaves)
+            .bindPopup(`MIL: ${callsign}<br>Alt: ${a[7]} m`);
+        }
+      });
+    })
+    .catch(()=>{ console.log("Erro API OpenSky"); });
 }
 
-// IA Simulada (120 instâncias)
-function atualizarIA(){
-  let iasDiv = document.getElementById("ias");
-  iasDiv.innerHTML = "";
+// === IAs ANALISANDO E GERANDO ALERTAS ===
+function atualizarAlertas(){
+  camadaAlertas.clearLayers();
+
   for(let i=1;i<=120;i++){
-    let status = Math.random()<0.05 ? "⚠️ alerta" : "normal";
-    let div = document.createElement("div");
-    div.className="ia-status";
-    div.innerText = `IA ${i}: ${status}`;
-    iasDiv.appendChild(div);
+    // IA “analisa” aeronaves e decide se gera alerta
+    aeronaves.forEach(a=>{
+      let lat = a.lat + (Math.random()-0.5)*0.001; // leve variação
+      let lon = a.lon + (Math.random()-0.5)*0.001;
+
+      let cor="green";
+      let status="normal";
+
+      // Regras de detecção suspeita
+      if(a.alt < 3000){ cor="red"; status="⚠️ baixa altitude"; }
+      else if(a.alt < 6000 && Math.random()>0.7){ cor="orange"; status="suspeita média"; }
+
+      if(cor !== "green"){
+        L.circleMarker([lat,lon], {radius:6, color:cor})
+          .addTo(camadaAlertas)
+          .bindPopup(`IA ${i} detectou: ${status}<br>Aeronave: ${a.callsign}`);
+      }
+    });
   }
 }
 
-// Atualização
-atualizarClima();
+// Atualização periódica
 detectarMilitares();
-atualizarIA();
+atualizarAlertas();
 setInterval(detectarMilitares,20000);
-setInterval(atualizarIA,5000);
-</script>
+setInterval(atualizarAlertas,5000);
 
+</script>
 </body>
 </html>
