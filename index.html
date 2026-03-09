@@ -2,17 +2,16 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Franca SP - IA de Alertas</title>
+<title>Franca SP - Monitoramento Urbano</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <style>
-  body { margin:0; background:#111; color:white; font-family:Arial; }
+  body { margin:0; font-family:Arial; background:#111; color:white; }
   #map { height:100vh; }
 </style>
 </head>
 <body>
-
-<h2 style="padding:10px">Monitoramento Franca SP - Alertas IA</h2>
+<h2 style="padding:10px">Monitoramento Urbano Franca SP - IA</h2>
 <div id="map"></div>
 
 <script>
@@ -20,11 +19,43 @@
 var map = L.map('map').setView([-20.539,-47.401],13);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-// Camadas
+// CAMADAS
 var camadaAeronaves = L.layerGroup().addTo(map);
 var camadaAlertas = L.layerGroup().addTo(map);
+var camadaCarros = L.layerGroup().addTo(map);
+var camadaOcorrencias = L.layerGroup().addTo(map);
 
-// === DETECTAR AERONAVES MILITARES ===
+// === SIMULAÇÃO TRÁFEGO DE CARROS ===
+var carros = [];
+function gerarCarros(){
+  camadaCarros.clearLayers();
+  carros = [];
+  for(let i=0;i<50;i++){
+    let lat = -20.539 + (Math.random()-0.5)*0.05;
+    let lon = -47.401 + (Math.random()-0.5)*0.05;
+    let densidade = Math.floor(Math.random()*10)+1; // 1 a 10
+    carros.push({lat, lon, densidade});
+    L.circle([lat,lon], {radius: densidade*20, color:'blue', fillOpacity:0.3}).addTo(camadaCarros)
+      .bindPopup(`Tráfego: ${densidade}`);
+  }
+}
+
+// === SIMULAÇÃO OCORRÊNCIAS POLICIAIS ===
+var ocorrencias = [];
+function gerarOcorrencias(){
+  camadaOcorrencias.clearLayers();
+  ocorrencias = [];
+  for(let i=0;i<10;i++){
+    let lat = -20.539 + (Math.random()-0.5)*0.05;
+    let lon = -47.401 + (Math.random()-0.5)*0.05;
+    ocorrencias.push({lat, lon});
+    L.marker([lat,lon], {icon:L.icon({iconUrl:'https://upload.wikimedia.org/wikipedia/commons/3/33/Red_circle_icon.svg', iconSize:[20,20]})})
+      .addTo(camadaOcorrencias)
+      .bindPopup("Ocorrência policial");
+  }
+}
+
+// === SIMULAÇÃO AERONAVES MILITARES ===
 var aeronaves = [];
 function detectarMilitares(){
   fetch("https://opensky-network.org/api/states/all")
@@ -36,46 +67,57 @@ function detectarMilitares(){
         let lat=a[6], lon=a[5], callsign=a[1]||"";
         if(lat && lon && callsign.toUpperCase().includes("MIL")){
           aeronaves.push({lat, lon, callsign, alt:a[7]});
-          L.circleMarker([lat,lon], {radius:5, color:"red"})
-            .addTo(camadaAeronaves)
+          L.circleMarker([lat,lon], {radius:5, color:"red"}).addTo(camadaAeronaves)
             .bindPopup(`MIL: ${callsign}<br>Alt: ${a[7]} m`);
         }
       });
-    })
-    .catch(()=>{ console.log("Erro API OpenSky"); });
+    }).catch(()=>{ console.log("Erro OpenSky"); });
 }
 
-// === IAs ANALISANDO E GERANDO ALERTAS ===
-function atualizarAlertas(){
+// === IAs ANALISANDO TUDO ===
+function atualizarAlertasIA(){
   camadaAlertas.clearLayers();
-
   for(let i=1;i<=120;i++){
-    // IA “analisa” aeronaves e decide se gera alerta
-    aeronaves.forEach(a=>{
-      let lat = a.lat + (Math.random()-0.5)*0.001; // leve variação
-      let lon = a.lon + (Math.random()-0.5)*0.001;
+    // Cada IA escolhe uma região aleatória (simulação)
+    let lat = -20.539 + (Math.random()-0.5)*0.05;
+    let lon = -47.401 + (Math.random()-0.5)*0.05;
 
-      let cor="green";
-      let status="normal";
+    // Regras simples:
+    let alerta="normal";
+    let cor="green";
 
-      // Regras de detecção suspeita
-      if(a.alt < 3000){ cor="red"; status="⚠️ baixa altitude"; }
-      else if(a.alt < 6000 && Math.random()>0.7){ cor="orange"; status="suspeita média"; }
+    // Tráfego pesado
+    let carrosNaRegiao = carros.filter(c=>Math.abs(c.lat-lat)<0.01 && Math.abs(c.lon-lon)<0.01);
+    let densidadeTotal = carrosNaRegiao.reduce((acc,c)=>acc+c.densidade,0);
 
-      if(cor !== "green"){
-        L.circleMarker([lat,lon], {radius:6, color:cor})
-          .addTo(camadaAlertas)
-          .bindPopup(`IA ${i} detectou: ${status}<br>Aeronave: ${a.callsign}`);
-      }
-    });
+    // Ocorrência na região
+    let occNaRegiao = ocorrencias.filter(o=>Math.abs(o.lat-lat)<0.01 && Math.abs(o.lon-lon)<0.01);
+
+    if(densidadeTotal>20 || occNaRegiao.length>0){
+      cor="red";
+      alerta="⚠️ alto risco";
+    } else if(densidadeTotal>10){
+      cor="orange";
+      alerta="atenção";
+    }
+
+    if(cor!=="green"){
+      L.circleMarker([lat,lon], {radius:6, color:cor}).addTo(camadaAlertas)
+        .bindPopup(`IA ${i} detectou: ${alerta}<br>Tráfego: ${densidadeTotal}, Ocorrências: ${occNaRegiao.length}`);
+    }
   }
 }
 
-// Atualização periódica
+// === LOOP DE ATUALIZAÇÃO ===
+gerarCarros();
+gerarOcorrencias();
 detectarMilitares();
-atualizarAlertas();
+atualizarAlertasIA();
+
+setInterval(gerarCarros,10000);
+setInterval(gerarOcorrencias,15000);
 setInterval(detectarMilitares,20000);
-setInterval(atualizarAlertas,5000);
+setInterval(atualizarAlertasIA,5000);
 
 </script>
 </body>
