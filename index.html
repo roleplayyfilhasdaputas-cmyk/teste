@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Mapa de Ocorrências - Franca SP</title>
+<title>Mapa de Ocorrências com IA - Franca SP</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css"/>
@@ -18,10 +18,10 @@ body { margin:0; font-family:Arial, sans-serif; background:#111; color:white; }
 </head>
 <body>
 
-<h2 style="padding:10px">Mapa de Ocorrências - Franca SP (últimas 24h)</h2>
+<h2 style="padding:10px">Mapa de Ocorrências com IA - Franca SP</h2>
 
 <div id="map"></div>
-<div id="painel"><span class="ocorrencia">Carregando notícias...</span></div>
+<div id="painel"><span class="ocorrencia">Carregando notícias com IA...</span></div>
 
 <script>
 // 1️⃣ Mapa
@@ -58,10 +58,11 @@ function adicionarNoticia(lat, lon, titulo, horario, tipo){
   painel.appendChild(span);
 }
 
-// 4️⃣ RSS feeds
+// 4️⃣ RSS feeds (incluindo GCN)
 const feeds = [
-  "https://g1.globo.com/rss/sp/franca-jacarei/index.xml",
-  "https://acidadeon.com/franca/rss"
+  "https://g1.globo.com/rss/sp/franca-jacarei/index.xml",  // G1 Franca
+  "https://acidadeon.com/franca/rss",                     // ACidadeON Franca
+  "https://g1.globo.com/rss/sp/cn/index.xml"             // GCN - G1 Centro-Norte
 ];
 
 // 5️⃣ Pegar notícias
@@ -107,8 +108,8 @@ async function geocodeEndereco(endereco){
   return null;
 }
 
-// 7️⃣ Detectar tipo
-function detectarTipo(titulo){
+// 7️⃣ IA para detectar tipo de ocorrência
+function detectarTipoIA(titulo){
   titulo = titulo.toLowerCase();
   if(titulo.includes("acidente")) return "acidente";
   if(titulo.includes("roubo")) return "roubo";
@@ -116,23 +117,22 @@ function detectarTipo(titulo){
   return "outro";
 }
 
-// 8️⃣ Extrair endereço ou bairro
-function extrairLocal(titulo){
-  // Primeiro tenta endereço
+// 8️⃣ IA para extrair endereço ou bairro
+function extrairLocalIA(titulo){
+  // Endereço
   let match = titulo.match(/(Rua|Avenida|Av|Praça|Travessa|Alameda) [\w\s]+/i);
   if(match) return match[0];
 
-  // Tenta bairros mais comuns (exemplo simplificado)
+  // Bairro
   let bairros = ["Centro","Vila Santa Clara","Jardim Planalto","Vila Lemos","Jardim Paulista"];
   for(let b of bairros){
     if(titulo.includes(b)) return b;
   }
-
   return null;
 }
 
 // 9️⃣ Atualizar mapa
-async function atualizarMapa(){
+async function atualizarMapaIA(){
   camadaCluster.clearLayers();
   heatLayer.setLatLngs([]);
   document.getElementById("painel").innerHTML = "";
@@ -144,13 +144,13 @@ async function atualizarMapa(){
   }
 
   for(const n of noticias){
-    let local = extrairLocal(n.titulo);
-    if(!local) continue; // só mostra se tiver endereço ou bairro
+    let local = extrairLocalIA(n.titulo);
+    if(!local) continue; // só se tiver endereço ou bairro
 
     let coords = await geocodeEndereco(local);
     if(!coords) continue;
 
-    let tipo = detectarTipo(n.titulo);
+    let tipo = detectarTipoIA(n.titulo);
     if(tipo==="outro") continue;
 
     adicionarNoticia(coords.lat, coords.lon, n.titulo, n.pubDate.toLocaleString(), tipo);
@@ -158,10 +158,10 @@ async function atualizarMapa(){
 }
 
 // 🔄 Atualiza a cada 5 minutos
-setInterval(atualizarMapa, 300000);
+setInterval(atualizarMapaIA, 300000);
 
 // 🔥 Carrega imediatamente
-atualizarMapa();
+atualizarMapaIA();
 </script>
 </body>
 </html>
