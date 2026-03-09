@@ -1,205 +1,84 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="pt-BR">
 <head>
-
-<title>Centro de Monitoramento Franca</title>
-
-<link rel="stylesheet"
-href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-
+<meta charset="UTF-8">
+<title>Monitoramento Franca SP - Militar & IA</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
 <style>
-
-body{
-margin:0;
-background:#111;
-color:white;
-font-family:Arial;
-}
-
-#map{
-height:75vh;
-}
-
-#painel{
-padding:10px;
-background:#222;
-}
-
+  body { margin:0; background:#111; color:white; font-family:Arial; }
+  #map { height:75vh; }
+  #painel { padding:10px; background:#222; max-height:25vh; overflow-y:auto; }
+  .ia-status { margin:3px 0; }
 </style>
-
 </head>
-
 <body>
 
-<h2 style="padding:10px">
-Centro de Monitoramento - Franca SP
-</h2>
+<h2 style="padding:10px">Centro de Monitoramento - Franca SP</h2>
 
 <div id="map"></div>
-
 <div id="painel">
-
-<div>🌧️ clima: <span id="clima">carregando...</span></div>
-
-<div>✈️ aeronaves detectadas: <span id="air">0</span></div>
-
-<div>🚁 helicópteros estimados: <span id="heli">0</span></div>
-
-<div>🤖 análise IA: <span id="ia">analisando...</span></div>
-
-<div>🚨 alerta: <span id="alerta">normal</span></div>
-
+  <div>🌧️ Clima: <span id="clima">carregando...</span></div>
+  <div>✈️ Aeronaves militares detectadas: <span id="military">0</span></div>
+  <div>🤖 Análises IA (120):</div>
+  <div id="ias"></div>
 </div>
 
 <script>
+var map = L.map('map').setView([-20.539,-47.401],13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+L.marker([-20.539,-47.401]).addTo(map).bindPopup("Franca SP");
 
-// MAPA
+// Layer para aeronaves
+var camadaAeronaves = L.layerGroup().addTo(map);
 
-var map = L.map('map').setView([-20.539,-47.401],13)
-
-L.tileLayer(
-'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-).addTo(map)
-
-
-// MARCADOR DA CIDADE
-
-L.marker([-20.539,-47.401])
-.addTo(map)
-.bindPopup("Franca SP")
-
-
-// CAMADA AERONAVES
-
-var camadaAeronaves = L.layerGroup().addTo(map)
-
-var total=0
-var helic=0
-
-
-// CLIMA (API OPENWEATHER)
-
-function clima(){
-
-fetch(
-"https://api.openweathermap.org/data/2.5/weather?q=Franca,BR&appid=18c0069e134314e6d309f559d1e942fd&units=metric"
-)
-
-.then(r=>r.json())
-
-.then(d=>{
-
-var temp=d.main.temp
-var desc=d.weather[0].description
-
-document.getElementById("clima").innerText =
-temp+"°C "+desc
-
-})
-
-.catch(()=>{
-
-document.getElementById("clima").innerText =
-"erro ao carregar clima"
-
-})
-
+// Clima
+function atualizarClima(){
+  fetch("https://api.openweathermap.org/data/2.5/weather?q=Franca,BR&appid=YOUR_API_KEY&units=metric")
+  .then(r=>r.json())
+  .then(d=>{
+    document.getElementById("clima").innerText = d.main.temp+"°C "+d.weather[0].description;
+  }).catch(()=>{ document.getElementById("clima").innerText="erro"; });
 }
 
-
-// AERONAVES
-
-function detectarAeronaves(){
-
-fetch("https://opensky-network.org/api/states/all")
-
-.then(r=>r.json())
-
-.then(d=>{
-
-camadaAeronaves.clearLayers()
-
-total=0
-helic=0
-
-d.states.forEach(a=>{
-
-var lat=a[6]
-var lon=a[5]
-var alt=a[7]
-
-if(lat && lon){
-
-total++
-
-if(alt<3000) helic++
-
-L.circleMarker([lat,lon],{
-radius:4,
-color:"yellow"
-})
-.addTo(camadaAeronaves)
-
+// Aeronaves militares
+function detectarMilitares(){
+  fetch("https://opensky-network.org/api/states/all")
+  .then(r=>r.json())
+  .then(d=>{
+    camadaAeronaves.clearLayers();
+    let count = 0;
+    d.states.forEach(a=>{
+      let lat = a[6], lon = a[5], callsign = a[1] || "";
+      if(lat && lon && callsign.toUpperCase().includes("MIL")){
+        count++;
+        L.circleMarker([lat,lon],{radius:5,color:"red"}).addTo(camadaAeronaves)
+          .bindPopup("MIL: "+callsign);
+      }
+    });
+    document.getElementById("military").innerText = count;
+  }).catch(()=>{ document.getElementById("military").innerText="API bloqueada"; });
 }
 
-})
-
-document.getElementById("air").innerText=total
-document.getElementById("heli").innerText=helic
-
-analisarIA()
-
-})
-
-.catch(()=>{
-
-document.getElementById("air").innerText="API bloqueada"
-
-})
-
+// IA Simulada (120 instâncias)
+function atualizarIA(){
+  let iasDiv = document.getElementById("ias");
+  iasDiv.innerHTML = "";
+  for(let i=1;i<=120;i++){
+    let status = Math.random()<0.05 ? "⚠️ alerta" : "normal";
+    let div = document.createElement("div");
+    div.className="ia-status";
+    div.innerText = `IA ${i}: ${status}`;
+    iasDiv.appendChild(div);
+  }
 }
 
-
-// IA SIMPLES
-
-function analisarIA(){
-
-var analise="atividade normal"
-
-var alerta="normal"
-
-if(helic>5){
-
-analise="várias aeronaves em baixa altitude"
-alerta="atenção"
-
-}
-
-if(total>50){
-
-analise="tráfego aéreo elevado"
-alerta="atenção"
-
-}
-
-document.getElementById("ia").innerText=analise
-
-document.getElementById("alerta").innerText=alerta
-
-}
-
-
-// INICIAR
-
-clima()
-
-detectarAeronaves()
-
-setInterval(detectarAeronaves,20000)
-
+// Atualização
+atualizarClima();
+detectarMilitares();
+atualizarIA();
+setInterval(detectarMilitares,20000);
+setInterval(atualizarIA,5000);
 </script>
 
 </body>
