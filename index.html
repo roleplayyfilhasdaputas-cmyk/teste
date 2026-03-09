@@ -65,7 +65,21 @@ const feeds = [
   "https://g1.globo.com/rss/sp/cn/index.xml"             // GCN - G1 Centro-Norte
 ];
 
-// 5️⃣ Pegar notícias
+// 5️⃣ Notícias pré-carregadas para mostrar instantaneamente
+const noticiasPreCarregadas = [
+  {titulo: "Acidente no Jardim Planalto", pubDate: new Date(), tipo: "acidente", endereco: "Jardim Planalto"},
+  {titulo: "Roubo no Centro", pubDate: new Date(), tipo: "roubo", endereco: "Centro"},
+  {titulo: "Assassinato na Vila Santa Clara", pubDate: new Date(), tipo: "assassinato", endereco: "Vila Santa Clara"}
+];
+
+// Adiciona pré-carregadas imediatamente
+noticiasPreCarregadas.forEach(n => {
+  geocodeEndereco(n.endereco).then(coords => {
+    if(coords) adicionarNoticia(coords.lat, coords.lon, n.titulo, n.pubDate.toLocaleString(), n.tipo);
+  });
+});
+
+// 6️⃣ Pegar notícias
 async function pegarNoticiasRSS(){
   const proxy = "https://api.allorigins.win/get?url=";
   let noticias24h = [];
@@ -93,7 +107,7 @@ async function pegarNoticiasRSS(){
   return noticias24h;
 }
 
-// 6️⃣ Geocoding Nominatim
+// 7️⃣ Geocoding Nominatim
 async function geocodeEndereco(endereco){
   try {
     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(endereco + ", Franca, SP")}`;
@@ -108,7 +122,7 @@ async function geocodeEndereco(endereco){
   return null;
 }
 
-// 7️⃣ IA para detectar tipo de ocorrência
+// 8️⃣ IA para detectar tipo de ocorrência
 function detectarTipoIA(titulo){
   titulo = titulo.toLowerCase();
   if(titulo.includes("acidente")) return "acidente";
@@ -117,7 +131,7 @@ function detectarTipoIA(titulo){
   return "outro";
 }
 
-// 8️⃣ IA para extrair endereço ou bairro
+// 9️⃣ IA para extrair endereço ou bairro
 function extrairLocalIA(titulo){
   // Endereço
   let match = titulo.match(/(Rua|Avenida|Av|Praça|Travessa|Alameda) [\w\s]+/i);
@@ -131,7 +145,7 @@ function extrairLocalIA(titulo){
   return null;
 }
 
-// 9️⃣ Atualizar mapa
+// 10️⃣ Atualizar mapa
 async function atualizarMapaIA(){
   camadaCluster.clearLayers();
   heatLayer.setLatLngs([]);
@@ -157,8 +171,8 @@ async function atualizarMapaIA(){
   }
 }
 
-// 🔄 Atualiza a cada 5 minutos
-setInterval(atualizarMapaIA, 300000);
+// 🔄 Atualiza a cada 5 segundos
+setInterval(atualizarMapaIA, 5000);
 
 // 🔥 Carrega imediatamente
 atualizarMapaIA();
