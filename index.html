@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Painel Militar</title>
 <style>
-/* ====== FONTE DIGITAL (opcional, estilo relógio HUD) ====== */
+/* Fonte digital para HUD */
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 
-/* ====== RESET E ESTILO BASE ====== */
+/* ===== RESET E ESTILO BASE ===== */
 body {
     margin: 0;
     font-family: 'Share Tech Mono', monospace;
@@ -21,7 +21,7 @@ body {
     position: relative;
 }
 
-/* ====== LINHAS DE VARREDURA ====== */
+/* ===== LINHAS DE VARREDURA ===== */
 body::after {
     content: '';
     position: absolute;
@@ -37,7 +37,7 @@ body::after {
     z-index: 1;
 }
 
-/* ====== CABEÇALHO ====== */
+/* ===== CABEÇALHO ===== */
 header {
     background: #111;
     padding: 12px 20px;
@@ -56,7 +56,7 @@ header {
     to { box-shadow: inset 0 0 20px #00ff9c; }
 }
 
-/* ====== RELÓGIO ====== */
+/* ===== RELÓGIO ===== */
 #hora {
     font-family: 'Share Tech Mono', monospace;
     text-shadow: 0 0 5px #00ff9c, 0 0 10px #00ff9c;
@@ -68,7 +68,7 @@ header {
     100% { opacity: 1; }
 }
 
-/* ====== CONTEÚDO CENTRAL ====== */
+/* ===== CONTEÚDO CENTRAL ===== */
 #conteudo {
     flex: 1;
     display: flex;
@@ -85,7 +85,7 @@ iframe {
     border-radius: 4px;
 }
 
-/* ====== ALERTA ====== */
+/* ===== ALERTA ===== */
 #alerta {
     background: #111;
     border-top: 2px solid red;
@@ -104,7 +104,7 @@ iframe {
     to { text-shadow: 0 0 20px red; }
 }
 
-/* ====== NOSCRIPT ====== */
+/* ===== NOSCRIPT ===== */
 noscript {
     color: yellow;
     font-size: 16px;
@@ -115,13 +115,14 @@ noscript {
     transform: translate(-50%, -50%);
 }
 
-/* ====== TRANSIÇÃO LEVE DE BRILHO ====== */
+/* ===== TRANSIÇÃO LEVE ===== */
 * {
     transition: all 0.2s ease-in-out;
 }
 </style>
 </head>
 <body>
+
 <header>
     🛰 PAINEL MILITAR
     <div>🕒 <span id="hora"></span></div>
@@ -137,8 +138,8 @@ noscript {
 <div id="alerta">⚠ MONITORAMENTO DE AVIÕES MILITARES ATIVO</div>
 
 <script>
+/* ===== RELÓGIO ===== */
 const hora = document.getElementById("hora");
-
 function atualizarHora() {
     const agora = new Date();
     hora.innerText = agora.toLocaleString('pt-BR', {
@@ -151,9 +152,91 @@ function atualizarHora() {
         second: '2-digit'
     });
 }
-
 setInterval(atualizarHora, 1000);
 atualizarHora();
+
+/* ===== SIMULAÇÃO DE IAs ===== */
+const conteudo = document.getElementById('conteudo');
+
+// Container das IAs
+const iaContainer = document.createElement('div');
+iaContainer.style.position = 'absolute';
+iaContainer.style.top = '0';
+iaContainer.style.left = '0';
+iaContainer.style.width = '100%';
+iaContainer.style.height = '100%';
+iaContainer.style.pointerEvents = 'none';
+iaContainer.style.zIndex = '3';
+conteudo.appendChild(iaContainer);
+
+const NUM_IAS = 200;
+const IAs = [];
+
+// Cria IAs
+for(let i=0;i<NUM_IAS;i++){
+    const ia = document.createElement('div');
+    ia.style.width = '5px';
+    ia.style.height = '5px';
+    ia.style.backgroundColor = '#00ff9c';
+    ia.style.borderRadius = '50%';
+    ia.style.position = 'absolute';
+    ia.style.left = Math.random()*100 + '%';
+    ia.style.top = Math.random()*100 + '%';
+    iaContainer.appendChild(ia);
+    IAs.push({
+        el: ia,
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        vx: (Math.random()-0.5)*1.5,
+        vy: (Math.random()-0.5)*1.5
+    });
+}
+
+// Alvos simulados (aviões/cacas)
+const NUM_ALVOS = 20;
+const alvos = [];
+for(let i=0;i<NUM_ALVOS;i++){
+    alvos.push({
+        x: Math.random()*window.innerWidth,
+        y: Math.random()*window.innerHeight
+    });
+}
+
+// Atualiza posição das IAs
+function atualizarIAs(){
+    IAs.forEach(ia => {
+        // Escolhe alvo aleatório para perseguir
+        const alvo = alvos[Math.floor(Math.random()*NUM_ALVOS)];
+        const dx = alvo.x - ia.x;
+        const dy = alvo.y - ia.y;
+        const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+        ia.vx = (dx/dist) * 1;
+        ia.vy = (dy/dist) * 1;
+
+        ia.x += ia.vx;
+        ia.y += ia.vy;
+
+        // Rebote nas bordas
+        if(ia.x < 0) ia.x = window.innerWidth;
+        if(ia.x > window.innerWidth) ia.x = 0;
+        if(ia.y < 0) ia.y = window.innerHeight;
+        if(ia.y > window.innerHeight) ia.y = 0;
+
+        ia.el.style.left = ia.x + 'px';
+        ia.el.style.top = ia.y + 'px';
+    });
+
+    // Atualiza alvos simulados
+    alvos.forEach(alvo=>{
+        alvo.x += (Math.random()-0.5)*2;
+        alvo.y += (Math.random()-0.5)*2;
+    });
+
+    requestAnimationFrame(atualizarIAs);
+}
+
+atualizarIAs();
 </script>
+
 </body>
 </html>
