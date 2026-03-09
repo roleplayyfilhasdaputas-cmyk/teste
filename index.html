@@ -2,26 +2,38 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Radar de Ocorrências Franca – Funcional</title>
+<title>Radar de Ocorrências Franca – Final PRO</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
 
 <style>
 body { margin:0; font-family:Arial; background:#111; color:white; }
-#map { height:60vh; }
-#painel { height:40vh; background:#222; overflow:auto; padding:10px; display:flex; flex-direction:row; }
+#map { height:50vh; }
+#painel { height:50vh; background:#222; overflow:auto; padding:10px; display:flex; flex-direction:row; }
 #timeline { flex:1; overflow:auto; padding-right:10px; }
 #dashboard { flex:1; padding-left:10px; }
 .timeline-item { margin-bottom:5px; }
 .alert-marker { animation: pulse 1s infinite; }
 @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.3); } 100% { transform: scale(1); } }
+.controls { margin-bottom:10px; }
 </style>
 </head>
-<body>
 
-<h2 style="padding:10px">Radar de Ocorrências – Franca FUNCIONAL</h2>
+<body>
+<h2 style="padding:10px">Radar de Ocorrências – Franca FINAL PRO</h2>
+
+<div class="controls">
+  Tipo de Crime:
+  <select id="filtroTipo">
+    <option value="todos">Todos</option>
+    <option value="acidente">Acidente</option>
+    <option value="roubo">Roubo/Assalto</option>
+    <option value="homicídio">Homicídio/Assassinato</option>
+  </select>
+</div>
 
 <div id="map"></div>
 <div id="painel">
@@ -36,7 +48,7 @@ body { margin:0; font-family:Arial; background:#111; color:white; }
 const map = L.map('map').setView([-20.538, -47.401],13);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-// --- Feeds RSS de teste ---
+// --- Feeds RSS ---
 const feeds = [
 "https://g1.globo.com/sp/franca-jacarei/rss.xml",
 "https://acidadeon.com/franca/rss"
@@ -52,7 +64,7 @@ const crimeIcons = {
   "latrocínio": "black"
 };
 
-// --- Coordenadas aproximadas de bairros de Franca ---
+// --- Coordenadas aproximadas de bairros ---
 const bairrosCoords = {
   "Centro": [-20.538, -47.400],
   "Jardim América": [-20.540, -47.402],
@@ -61,9 +73,10 @@ const bairrosCoords = {
   "Desconhecido": [-20.538, -47.401]
 };
 
-// --- Marcadores e dados ---
+// --- Marcadores e heatmap ---
 let markers = [];
-let ocorrenciasBairro = {};
+let heatPoints = [];
+let heatLayer;
 
 // --- Detecta tipo de crime ---
 function tipoCrime(t){
@@ -103,20 +116,22 @@ async function rss(){
 async function atualizar(){
   markers.forEach(m=>map.removeLayer(m));
   markers = [];
+  heatPoints = [];
+  if(heatLayer) map.removeLayer(heatLayer);
   document.getElementById("timeline").innerHTML = "";
-  ocorrenciasBairro = {};
+
+  const filtroTipo = document.getElementById("filtroTipo").value;
 
   let noticias = await rss();
+  let ocorrenciasBairro = {};
 
   for(let n of noticias){
     let tipo = tipoCrime(n.titulo);
     if(!tipo) continue;
+    if(filtroTipo!="todos" && tipo!=filtroTipo) continue;
 
-    // Detecta bairro via regex simples
     let match = n.titulo.match(/bairro\s([\w\s]+)/i);
     let bairro = match ? match[1].trim() : "Desconhecido";
-
-    // Usa coordenadas fixas
     let coords = bairrosCoords[bairro] || bairrosCoords["Desconhecido"];
 
     // Cria marcador
@@ -127,9 +142,11 @@ async function atualizar(){
       fillOpacity:0.9,
       className: tipo=="homicídio"||tipo=="assassinato"?"alert-marker":""
     }).addTo(map);
-
     marker.bindPopup("<b>"+n.titulo+"</b><br>"+n.data.toLocaleString("pt-BR"));
     markers.push(marker);
+
+    // Adiciona ao heatmap
+    heatPoints.push([...coords, 1]);
 
     // Timeline
     let item = document.createElement("div");
@@ -140,18 +157,22 @@ async function atualizar(){
     // Dashboard
     ocorrenciasBairro[bairro] = (ocorrenciasBairro[bairro]||0)+1;
 
-    // Notificação sonora para crimes graves
+    // Alerta sonoro
     if(tipo=="homicídio"||tipo=="assassinato"){
       new Audio("https://www.soundjay.com/buttons/sounds/beep-07.mp3").play();
     }
   }
 
-  atualizarDashboard();
+  // Cria heatmap
+  heatLayer = L.heatLayer(heatPoints, {radius:25, blur:15, maxZoom:17}).addTo(map);
+
+  // Atualiza gráfico
+  atualizarDashboard(ocorrenciasBairro);
 }
 
 // --- Atualiza gráfico ---
 let chart;
-function atualizarDashboard(){
+function atualizarDashboard(ocorrenciasBairro){
   const ctx = document.getElementById("chart").getContext("2d");
   if(chart) chart.destroy();
   chart = new Chart(ctx,{
@@ -169,7 +190,8 @@ function atualizarDashboard(){
 }
 
 // --- Atualiza a cada 5 minutos ---
-setInterval(atualizar, 300000);
+setInterval(atualizar,300000);
+document.getElementById("filtroTipo").addEventListener("change", atualizar);
 atualizar();
 </script>
 </body>
