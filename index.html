@@ -8,158 +8,134 @@
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <style>
-
-body{
-margin:0;
-font-family:Arial;
-background:#111;
-color:white;
+body {
+  margin:0;
+  font-family:Arial;
+  background:#111;
+  color:white;
 }
-
-#map{
-height:75vh;
+#map {
+  height:75vh;
 }
-
-#painel{
-height:25vh;
-background:#222;
-overflow:auto;
-padding:10px;
+#painel {
+  height:25vh;
+  background:#222;
+  overflow:auto;
+  padding:10px;
 }
-
 </style>
 </head>
 
 <body>
 
-<h2 style="padding:10px">Radar de Ocorrências - Franca</h2>
+<h2 style="padding:10px">Radar de Ocorrências – Franca</h2>
 
 <div id="map"></div>
 
 <div id="painel">
-
-<h3>Ocorrências últimas 24h</h3>
-<div id="timeline"></div>
-
+  <h3>Ocorrências últimas 24h</h3>
+  <div id="timeline"></div>
 </div>
 
 <script>
 
+// Inicializa mapa
 const map = L.map('map').setView([-20.538,-47.401],13)
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png')
-.addTo(map)
+  .addTo(map)
 
+// Feeds RSS (você pode adicionar mais aqui)
 const feeds = [
+  "https://g1.globo.com/rss/sp/franca-jacarei/index.xml",
+  "https://acidadeon.com/franca/rss",
 
-"https://g1.globo.com/rss/sp/franca-jacarei/index.xml",
-"https://acidadeon.com/franca/rss"
-
+  // outros sugeridos mais abaixo…
 ]
 
+// Função para detectar tipo de crime
 function tipoCrime(t){
-
-t=t.toLowerCase()
-
-if(t.includes("acidente")) return "yellow"
-if(t.includes("roubo")) return "red"
-if(t.includes("assalto")) return "red"
-if(t.includes("homicídio")) return "black"
-if(t.includes("assassinato")) return "black"
-
-return null
-
+  t = t.toLowerCase()
+  if(t.includes("acidente")) return "yellow"
+  if(t.includes("roubo")) return "red"
+  if(t.includes("assalto")) return "red"
+  if(t.includes("homicídio")) return "black"
+  if(t.includes("assassinato")) return "black"
+  return null
 }
 
+let markers = []
+
+// Carrega feeds
 async function rss(){
+  const proxy = "https://api.allorigins.win/get?url="
+  let lista = []
+  let agora = new Date()
 
-const proxy="https://api.allorigins.win/get?url="
+  for(let f of feeds){
+    try{
+      let r = await fetch(proxy + encodeURIComponent(f))
+      let j = await r.json()
+      let xml = new DOMParser().parseFromString(j.contents,"text/xml")
+      let items = xml.querySelectorAll("item")
 
-let lista=[]
-let agora=new Date()
+      items.forEach(i=>{
+        let titulo = i.querySelector("title").textContent
+        let data = new Date(i.querySelector("pubDate").textContent)
+        let horas = (agora - data) / (1000*60*60)
 
-for(let f of feeds){
+        if(horas <= 24){
+          lista.push({titulo,data})
+        }
+      })
+    }catch(e){
+      console.warn("erro feed",e)
+    }
+  }
 
-try{
+  // Ordena por data decrescente
+  lista.sort((a,b) => b.data - a.data)
 
-let r=await fetch(proxy+encodeURIComponent(f))
-let j=await r.json()
-
-let xml=new DOMParser().parseFromString(j.contents,"text/xml")
-
-let items=xml.querySelectorAll("item")
-
-items.forEach(i=>{
-
-let titulo=i.querySelector("title").textContent
-let data=new Date(i.querySelector("pubDate").textContent)
-
-let horas=(agora-data)/(1000*60*60)
-
-if(horas<=24){
-
-lista.push({
-titulo:titulo,
-data:data
-})
-
+  return lista
 }
 
-})
-
-}catch(e){}
-
-}
-
-return lista
-
-}
-
+// Atualiza mapa e timeline
 async function atualizar(){
+  // Limpa antigos
+  markers.forEach(m => map.removeLayer(m))
+  markers = []
+  document.getElementById("timeline").innerHTML = ""
 
-document.getElementById("timeline").innerHTML=""
+  let noticias = await rss()
 
-let noticias=await rss()
+  // Limita a 100 ocorrências
+  noticias = noticias.slice(0, 100)
 
-for(let n of noticias){
+  for(let n of noticias){
+    let tipo = tipoCrime(n.titulo)
+    if(!tipo) continue
 
-let tipo=tipoCrime(n.titulo)
+    let lat = -20.538 + (Math.random()*0.05)
+    let lon = -47.401 + (Math.random()*0.05)
 
-if(!tipo) continue
+    let marker = L.circleMarker([lat,lon], {
+      radius: 8,
+      color: tipo,
+      fillColor: tipo,
+      fillOpacity: 0.9
+    }).addTo(map)
 
-let lat=-20.538 + (Math.random()*0.05)
-let lon=-47.401 + (Math.random()*0.05)
+    marker.bindPopup("<b>"+n.titulo+"</b><br>"+n.data.toLocaleString("pt-BR"))
 
-let marker=L.circleMarker(
+    markers.push(marker)
 
-[lat,lon],
-{
-radius:8,
-color:tipo,
-fillColor:tipo,
-fillOpacity:0.9
+    document.getElementById("timeline").innerHTML += 
+      n.data.toLocaleString("pt-BR")+" - "+n.titulo+"<br>"
+  }
 }
 
-).addTo(map)
-
-let hora=n.data.toLocaleString("pt-BR")
-
-marker.bindPopup(
-
-"<b>"+n.titulo+"</b><br>"+hora
-
-)
-
-document.getElementById("timeline").innerHTML+=
-
-hora+" - "+n.titulo+"<br>"
-
-}
-
-}
-
-setInterval(atualizar,5000)
-
+// Atualiza de 5 em 5 minutos
+setInterval(atualizar, 300000)
 atualizar()
 
 </script>
