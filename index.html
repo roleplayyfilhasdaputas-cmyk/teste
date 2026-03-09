@@ -2,27 +2,16 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Radar de Ocorrências Franca</title>
+<title>Radar de Ocorrências Franca - Versão Avançada</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <style>
-body {
-  margin:0;
-  font-family:Arial;
-  background:#111;
-  color:white;
-}
-#map {
-  height:75vh;
-}
-#painel {
-  height:25vh;
-  background:#222;
-  overflow:auto;
-  padding:10px;
-}
+body { margin:0; font-family:Arial; background:#111; color:white; }
+#map { height:75vh; }
+#painel { height:25vh; background:#222; overflow:auto; padding:10px; }
+.timeline-item { margin-bottom:5px; }
 </style>
 </head>
 
@@ -33,110 +22,137 @@ body {
 <div id="map"></div>
 
 <div id="painel">
-  <h3>Ocorrências últimas 24h</h3>
-  <div id="timeline"></div>
+<h3>Ocorrências últimas 24h</h3>
+<div id="timeline"></div>
 </div>
 
 <script>
 
-// Inicializa mapa
-const map = L.map('map').setView([-20.538,-47.401],13)
+// --- Inicializa mapa ---
+const map = L.map('map').setView([-20.538,-47.401],13);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png')
-  .addTo(map)
+  .addTo(map);
 
-// Feeds RSS (você pode adicionar mais aqui)
+// --- Feeds RSS focados em segurança ---
 const feeds = [
-  "https://g1.globo.com/rss/sp/franca-jacarei/index.xml",
-  "https://acidadeon.com/franca/rss",
+"https://g1.globo.com/sp/franca-jacarei/rss.xml",
+"https://g1.globo.com/sp/ribeirao-preto-franca/rss.xml",
+"https://acidadeon.com/franca/rss",
+"https://www.diariodaregiao.com.br/rss/seguranca",
+"https://www.folhadaregiao.com.br/rss/policia",
+"https://www.ribeiraopretoonline.com.br/rss/seguranca",
+"https://www.jornalacidade.com.br/rss/policia",
+"https://www.estadao.com.br/rss/policia",
+"https://www.gazetadopovo.com.br/rss/seguranca",
+"https://www.band.uol.com.br/rss/cidades",
+"https://www.cnnbrasil.com.br/rss/brasil",
+"https://www.r7.com/rss/cidades",
+"https://www.uol.com.br/rss/noticias",
+"https://www.terra.com.br/rss/brasil",
+"https://www.ig.com.br/noticias/rss/seguranca",
+"https://www.jornaldebrasilia.com.br/rss/policia",
+"https://www.odiario.com.br/rss/seguranca",
+"https://www.jornaldeuberaba.com.br/rss/policia",
+"https://www.diariodopara.com.br/rss/seguranca",
+"https://www.jornalmaringa.com.br/rss/seguranca"
+];
 
-  // outros sugeridos mais abaixo…
-]
-
-// Função para detectar tipo de crime
+// --- Função para determinar tipo de crime ---
 function tipoCrime(t){
-  t = t.toLowerCase()
-  if(t.includes("acidente")) return "yellow"
-  if(t.includes("roubo")) return "red"
-  if(t.includes("assalto")) return "red"
-  if(t.includes("homicídio")) return "black"
-  if(t.includes("assassinato")) return "black"
-  return null
+  t = t.toLowerCase();
+  if(t.includes("acidente")) return "yellow";
+  if(t.includes("roubo") || t.includes("assalto")) return "red";
+  if(t.includes("homicídio") || t.includes("assassinato") || t.includes("latrocínio")) return "black";
+  return null;
 }
 
-let markers = []
+// --- Marcadores atuais ---
+let markers = [];
 
-// Carrega feeds
+// --- Função para buscar RSS ---
 async function rss(){
-  const proxy = "https://api.allorigins.win/get?url="
-  let lista = []
-  let agora = new Date()
+  const proxy = "https://api.allorigins.win/get?url=";
+  let lista = [];
+  let agora = new Date();
 
   for(let f of feeds){
     try{
-      let r = await fetch(proxy + encodeURIComponent(f))
-      let j = await r.json()
-      let xml = new DOMParser().parseFromString(j.contents,"text/xml")
-      let items = xml.querySelectorAll("item")
+      let r = await fetch(proxy + encodeURIComponent(f));
+      let j = await r.json();
+      let xml = new DOMParser().parseFromString(j.contents,"text/xml");
+      let items = xml.querySelectorAll("item");
 
       items.forEach(i=>{
-        let titulo = i.querySelector("title").textContent
-        let data = new Date(i.querySelector("pubDate").textContent)
-        let horas = (agora - data) / (1000*60*60)
-
+        let titulo = i.querySelector("title").textContent;
+        let data = new Date(i.querySelector("pubDate").textContent);
+        let horas = (agora - data)/(1000*60*60);
         if(horas <= 24){
-          lista.push({titulo,data})
+          lista.push({titulo, data});
         }
-      })
-    }catch(e){
-      console.warn("erro feed",e)
-    }
+      });
+    }catch(e){ console.warn("Erro no feed:", f, e); }
   }
 
   // Ordena por data decrescente
-  lista.sort((a,b) => b.data - a.data)
-
-  return lista
+  lista.sort((a,b) => b.data - a.data);
+  return lista.slice(0,100); // Limita a 100 ocorrências
 }
 
-// Atualiza mapa e timeline
+// --- Função para geocoding (Nominatim) ---
+async function geocode(text){
+  const url = "https://nominatim.openstreetmap.org/search?format=json&q=" + encodeURIComponent(text + ", Franca, SP");
+  try{
+    let r = await fetch(url);
+    let j = await r.json();
+    if(j && j.length>0){
+      return [parseFloat(j[0].lat), parseFloat(j[0].lon)];
+    }
+  }catch(e){ console.warn("Erro geocode:", text, e); }
+  return null;
+}
+
+// --- Atualiza mapa e timeline ---
 async function atualizar(){
-  // Limpa antigos
-  markers.forEach(m => map.removeLayer(m))
-  markers = []
-  document.getElementById("timeline").innerHTML = ""
+  markers.forEach(m => map.removeLayer(m));
+  markers = [];
+  document.getElementById("timeline").innerHTML = "";
 
-  let noticias = await rss()
-
-  // Limita a 100 ocorrências
-  noticias = noticias.slice(0, 100)
+  let noticias = await rss();
 
   for(let n of noticias){
-    let tipo = tipoCrime(n.titulo)
-    if(!tipo) continue
+    let tipo = tipoCrime(n.titulo);
+    if(!tipo) continue;
 
-    let lat = -20.538 + (Math.random()*0.05)
-    let lon = -47.401 + (Math.random()*0.05)
+    // tenta extrair bairro ou endereço do título
+    let endereco = n.titulo.split(/–|-|:/)[1] || "Franca, SP";
 
-    let marker = L.circleMarker([lat,lon], {
+    let coords = await geocode(endereco);
+    if(!coords){
+      // fallback aleatório
+      coords = [-20.538 + Math.random()*0.05, -47.401 + Math.random()*0.05];
+    }
+
+    let marker = L.circleMarker(coords, {
       radius: 8,
       color: tipo,
       fillColor: tipo,
       fillOpacity: 0.9
-    }).addTo(map)
+    }).addTo(map);
 
-    marker.bindPopup("<b>"+n.titulo+"</b><br>"+n.data.toLocaleString("pt-BR"))
+    marker.bindPopup("<b>"+n.titulo+"</b><br>"+n.data.toLocaleString("pt-BR"));
+    markers.push(marker);
 
-    markers.push(marker)
-
-    document.getElementById("timeline").innerHTML += 
-      n.data.toLocaleString("pt-BR")+" - "+n.titulo+"<br>"
+    let item = document.createElement("div");
+    item.className = "timeline-item";
+    item.innerHTML = n.data.toLocaleString("pt-BR")+" - "+n.titulo;
+    document.getElementById("timeline").appendChild(item);
   }
 }
 
-// Atualiza de 5 em 5 minutos
-setInterval(atualizar, 300000)
-atualizar()
+// Atualiza a cada 10 minutos
+setInterval(atualizar, 600000);
+atualizar();
 
 </script>
 
