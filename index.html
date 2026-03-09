@@ -2,24 +2,24 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Mapa de Notícias - Franca SP</title>
+<title>Mapa de Notícias Geolocalizadas - Franca SP</title>
+
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
 <style>
-  body { margin:0; font-family:Arial, sans-serif; background:#111; color:white; }
-  #map { height:90vh; }
-  #painel { height:10vh; padding:10px; background:#222; overflow-x:auto; white-space:nowrap; }
-  .ocorrencia { display:inline-block; margin-right:20px; }
+body { margin:0; font-family:Arial, sans-serif; background:#111; color:white; }
+#map { height:90vh; }
+#painel { height:10vh; padding:10px; background:#222; overflow-x:auto; white-space:nowrap; }
+.ocorrencia { display:inline-block; margin-right:20px; }
 </style>
 </head>
 <body>
 
-<h2 style="padding:10px">Mapa de Notícias de Franca SP (últimas 24h)</h2>
+<h2 style="padding:10px">Mapa de Notícias Geolocalizadas - Franca SP (últimas 24h)</h2>
 
 <div id="map"></div>
-<div id="painel">
-  <span class="ocorrencia">Carregando notícias...</span>
-</div>
+<div id="painel"><span class="ocorrencia">Carregando notícias...</span></div>
 
 <script>
 // 1️⃣ Mapa centralizado em Franca
@@ -27,7 +27,7 @@ var map = L.map('map').setView([-20.539, -47.401], 13);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 var camadaNoticias = L.layerGroup().addTo(map);
 
-// 2️⃣ Função para adicionar notícia
+// 2️⃣ Adicionar notícia
 function adicionarNoticia(lat, lon, titulo, horario){
   var marcador = L.marker([lat, lon], {icon: L.icon({
     iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
@@ -47,8 +47,8 @@ function adicionarNoticia(lat, lon, titulo, horario){
 
 // 3️⃣ Função para pegar notícias reais via RSS
 async function pegarNoticiasRSS(){
-  const rssURL = "https://g1.globo.com/rss/sp/franca-jacarei/index.xml"; // RSS G1 Franca
-  const proxy = "https://api.allorigins.win/get?url="; // Proxy CORS
+  const rssURL = "https://g1.globo.com/rss/sp/franca-jacarei/index.xml";
+  const proxy = "https://api.allorigins.win/get?url=";
   try {
     const res = await fetch(proxy + encodeURIComponent(rssURL));
     const data = await res.json();
@@ -62,8 +62,7 @@ async function pegarNoticiasRSS(){
       const titulo = item.querySelector("title").textContent;
       const pubDate = new Date(item.querySelector("pubDate").textContent);
 
-      // Últimas 24h
-      if ((agora - pubDate)/(1000*60*60) <= 24) {
+      if ((agora - pubDate)/(1000*60*60) <= 24) { // últimas 24h
         noticias24h.push({titulo, pubDate});
       }
     });
@@ -74,32 +73,53 @@ async function pegarNoticiasRSS(){
   }
 }
 
-// 4️⃣ Atualizar mapa
+// 4️⃣ Função simples de geocoding via Nominatim
+async function geocodeEndereco(endereco){
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(endereco + ", Franca, SP")}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if(data && data.length > 0){
+      return {lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon)};
+    }
+  } catch(e){
+    console.error("Erro geocoding:", e);
+  }
+  return null;
+}
+
+// 5️⃣ Atualizar mapa
 async function atualizarMapa(){
   camadaNoticias.clearLayers();
   document.getElementById("painel").innerHTML = "";
 
   const noticias = await pegarNoticiasRSS();
-
   if(noticias.length === 0){
     document.getElementById("painel").innerHTML = "<span class='ocorrencia'>Nenhuma notícia nas últimas 24h</span>";
     return;
   }
 
-  noticias.forEach(n => {
-    // Simula lat/lon próximas ao centro de Franca
-    const lat = -20.539 + (Math.random()-0.5)/100;
-    const lon = -47.401 + (Math.random()-0.5)/100;
-    adicionarNoticia(lat, lon, n.titulo, n.pubDate.toLocaleString());
-  });
+  for(const n of noticias){
+    // Tenta extrair endereço do título (ex.: "Acidente na Rua X") usando regex simples
+    let endereco = n.titulo.match(/(Rua|Avenida|Av|Praça) [\w\s]+/i);
+    let coords = null;
+    if(endereco){
+      coords = await geocodeEndereco(endereco[0]);
+    }
+
+    // Se não encontrar endereço, coloca próximo ao centro
+    if(!coords) coords = {lat:-20.539 + (Math.random()-0.5)/100, lon:-47.401 + (Math.random()-0.5)/100};
+
+    adicionarNoticia(coords.lat, coords.lon, n.titulo, n.pubDate.toLocaleString());
+  }
 }
 
 // Atualiza a cada 20 minutos
 setInterval(atualizarMapa, 1200000);
 
-// Atualiza na primeira carga
+// Primeira carga
 atualizarMapa();
-</script>
 
+</script>
 </body>
 </html>
