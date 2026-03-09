@@ -2,186 +2,276 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Mapa de Ocorrências com 20 IAs - Franca SP</title>
+<title>Mapa de Ocorrências - Franca SP</title>
+
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css"/>
+
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
 <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+
 <style>
-body { margin:0; font-family:Arial, sans-serif; background:#111; color:white; }
-#map { height:90vh; }
-#painel { height:10vh; padding:10px; background:#222; overflow-x:auto; white-space:nowrap; }
-.ocorrencia { display:inline-block; margin-right:20px; }
+body{
+margin:0;
+background:#111;
+color:white;
+font-family:Arial;
+}
+
+#map{
+height:90vh;
+}
+
+#painel{
+height:10vh;
+background:#222;
+overflow-x:auto;
+white-space:nowrap;
+padding:10px;
+}
+
+.ocorrencia{
+display:inline-block;
+margin-right:20px;
+}
 </style>
 </head>
+
 <body>
 
-<h2 style="padding:10px">Mapa de Ocorrências com 20 IAs - Franca SP</h2>
+<h2 style="padding:10px">Ocorrências em Franca - últimas 24h</h2>
 
 <div id="map"></div>
-<div id="painel"><span class="ocorrencia">Carregando notícias com 20 IAs...</span></div>
+<div id="painel"></div>
 
 <script>
-// 1️⃣ Mapa
-var map = L.map('map').setView([-20.539, -47.401], 13);
+
+var map = L.map('map').setView([-20.539,-47.401],13);
+
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-// 2️⃣ Camadas
-var camadaCluster = L.markerClusterGroup();
-var heatLayer = L.heatLayer([], {radius: 25, blur: 15, maxZoom: 17}).addTo(map);
-map.addLayer(camadaCluster);
+var cluster = L.markerClusterGroup();
+var heat = L.heatLayer([], {radius:25}).addTo(map);
 
-// 3️⃣ Adicionar notícia
-function adicionarNoticia(lat, lon, titulo, horario, tipo){
-  let cor = "gray";
-  if(tipo==="acidente") cor = "yellow";
-  if(tipo==="roubo") cor = "red";
-  if(tipo==="assassinato") cor = "black";
+map.addLayer(cluster);
 
-  var marcador = L.circleMarker([lat, lon], {
-    radius:6,
-    color: cor,
-    fillColor: cor,
-    fillOpacity:0.8
-  });
-  marcador.bindPopup(`<b>${tipo.toUpperCase()}</b><br>${titulo}<br>${horario}`);
-  camadaCluster.addLayer(marcador);
+function adicionarNoticia(lat,lon,titulo,horario,tipo){
 
-  heatLayer.addLatLng([lat, lon, 1]);
+let cor="gray";
 
-  var painel = document.getElementById("painel");
-  var span = document.createElement("span");
-  span.className = "ocorrencia";
-  span.innerHTML = `<b>${tipo.toUpperCase()}</b>: ${titulo} (${horario})`;
-  painel.appendChild(span);
-}
+if(tipo=="acidente") cor="yellow";
+if(tipo=="roubo") cor="red";
+if(tipo=="assassinato") cor="black";
 
-// 4️⃣ RSS feeds
-const feeds = [
-  "https://g1.globo.com/rss/sp/franca-jacarei/index.xml",  
-  "https://acidadeon.com/franca/rss",                     
-  "https://g1.globo.com/rss/sp/cn/index.xml"             
-];
-
-// 5️⃣ Notícias pré-carregadas
-const noticiasPreCarregadas = [
-  {titulo: "Acidente no Jardim Planalto", pubDate: new Date(), tipo: "acidente", endereco: "Jardim Planalto"},
-  {titulo: "Roubo no Centro", pubDate: new Date(), tipo: "roubo", endereco: "Centro"},
-  {titulo: "Assassinato na Vila Santa Clara", pubDate: new Date(), tipo: "assassinato", endereco: "Vila Santa Clara"}
-];
-noticiasPreCarregadas.forEach(n => {
-  geocodeEndereco(n.endereco).then(coords => {
-    if(coords) adicionarNoticia(coords.lat, coords.lon, n.titulo, n.pubDate.toLocaleString(), n.tipo);
-  });
+var marker=L.circleMarker([lat,lon],{
+radius:7,
+color:cor,
+fillColor:cor,
+fillOpacity:0.8
 });
 
-// 6️⃣ Pegar notícias RSS
-async function pegarNoticiasRSS(){
-  const proxy = "https://api.allorigins.win/get?url=";
-  let noticias24h = [];
-  const agora = new Date();
+marker.bindPopup(
+"<b>"+titulo+"</b><br>"+
+"Tipo: "+tipo+"<br>"+
+"Publicado: "+horario
+);
 
-  for(const rssURL of feeds){
-    try {
-      const res = await fetch(proxy + encodeURIComponent(rssURL));
-      const data = await res.json();
-      const parser = new DOMParser();
-      const xml = parser.parseFromString(data.contents, "application/xml");
-      const items = xml.querySelectorAll("item");
+cluster.addLayer(marker);
 
-      items.forEach(item => {
-        const titulo = item.querySelector("title").textContent;
-        const pubDate = new Date(item.querySelector("pubDate").textContent);
-        if ((agora - pubDate)/(1000*60*60) <= 24) {
-          noticias24h.push({titulo, pubDate});
-        }
-      });
-    } catch(e){
-      console.error("Erro RSS:", rssURL, e);
-    }
-  }
-  return noticias24h;
+heat.addLatLng([lat,lon,1]);
+
+var painel=document.getElementById("painel");
+
+var span=document.createElement("span");
+
+span.className="ocorrencia";
+
+span.innerHTML=
+"<b>"+tipo.toUpperCase()+"</b> - "+
+titulo+
+" ("+horario+")";
+
+painel.appendChild(span);
+
 }
 
-// 7️⃣ Geocoding Nominatim
-async function geocodeEndereco(endereco){
-  try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(endereco + ", Franca, SP")}`;
-    const res = await fetch(url);
-    const data = await res.json();
-    if(data && data.length > 0){
-      return {lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon)};
-    }
-  } catch(e){
-    console.error("Erro geocoding:", e);
-  }
-  return null;
+const feeds=[
+
+"https://g1.globo.com/rss/sp/franca-jacarei/index.xml",
+
+"https://acidadeon.com/franca/rss",
+
+"https://g1.globo.com/rss/sp/cn/index.xml"
+
+];
+
+async function pegarNoticias(){
+
+const proxy="https://api.allorigins.win/get?url=";
+
+let noticias=[];
+
+let agora=new Date();
+
+for(const feed of feeds){
+
+try{
+
+let res=await fetch(proxy+encodeURIComponent(feed));
+
+let data=await res.json();
+
+let parser=new DOMParser();
+
+let xml=parser.parseFromString(data.contents,"application/xml");
+
+let items=xml.querySelectorAll("item");
+
+items.forEach(item=>{
+
+let titulo=item.querySelector("title").textContent;
+
+let pub=item.querySelector("pubDate").textContent;
+
+let pubDate=new Date(pub);
+
+let diff=(agora-pubDate)/(1000*60*60);
+
+if(diff<=24){
+
+noticias.push({
+titulo:titulo,
+data:pubDate
+});
+
 }
 
-// 8️⃣ IA para detectar tipo
-function detectarTipoIA(titulo){
-  titulo = titulo.toLowerCase();
-  if(titulo.includes("acidente")) return "acidente";
-  if(titulo.includes("roubo")) return "roubo";
-  if(titulo.includes("assassinato") || titulo.includes("homicídio")) return "assassinato";
-  return "outro";
+});
+
+}catch(e){
+
+console.log("erro feed",e);
+
 }
 
-// 9️⃣ IA para extrair endereço ou bairro
-function extrairLocalIA(titulo){
-  let match = titulo.match(/(Rua|Avenida|Av|Praça|Travessa|Alameda) [\w\s]+/i);
-  if(match) return match[0];
-
-  let bairros = ["Centro","Vila Santa Clara","Jardim Planalto","Vila Lemos","Jardim Paulista"];
-  for(let b of bairros){
-    if(titulo.includes(b)) return b;
-  }
-  return null;
 }
 
-// 10️⃣ Função de análise de notícias por IA
-async function analisarNoticiasIA(noticias){
-  for(const n of noticias){
-    let local = extrairLocalIA(n.titulo);
-    if(!local) continue;
+return noticias;
 
-    let coords = await geocodeEndereco(local);
-    if(!coords) continue;
-
-    let tipo = detectarTipoIA(n.titulo);
-    if(tipo==="outro") continue;
-
-    adicionarNoticia(coords.lat, coords.lon, n.titulo, n.pubDate.toLocaleString(), tipo);
-  }
 }
 
-// 11️⃣ Atualizar mapa com 20 IAs
-async function atualizarMapaIA(){
-  camadaCluster.clearLayers();
-  heatLayer.setLatLngs([]);
-  document.getElementById("painel").innerHTML = "";
+function detectarTipo(titulo){
 
-  const noticias = await pegarNoticiasRSS();
-  if(noticias.length === 0){
-    document.getElementById("painel").innerHTML = "<span class='ocorrencia'>Nenhuma notícia nas últimas 24h</span>";
-    return;
-  }
+titulo=titulo.toLowerCase();
 
-  // Simular 20 IAs processando as notícias
-  let iaPromises = [];
-  for(let i=0;i<20;i++){
-    iaPromises.push(analisarNoticiasIA(noticias));
-  }
-  await Promise.all(iaPromises);
+if(titulo.includes("acidente")) return "acidente";
+
+if(titulo.includes("roubo")) return "roubo";
+
+if(titulo.includes("assalto")) return "roubo";
+
+if(titulo.includes("assassinato")) return "assassinato";
+
+if(titulo.includes("homicídio")) return "assassinato";
+
+return null;
+
 }
 
-// 🔄 Atualiza a cada 5 segundos
-setInterval(atualizarMapaIA, 5000);
+function extrairLocal(titulo){
 
-// 🔥 Carrega imediatamente
-atualizarMapaIA();
+let rua=titulo.match(/(Rua|Avenida|Av|Praça|Travessa|Alameda) [\w\s]+/i);
+
+if(rua) return rua[0];
+
+let bairros=[
+"Centro",
+"Jardim Planalto",
+"Vila Santa Clara",
+"Jardim Paulista",
+"Vila Lemos"
+];
+
+for(let b of bairros){
+
+if(titulo.includes(b)) return b;
+
+}
+
+return null;
+
+}
+
+async function geocode(local){
+
+try{
+
+let url="https://nominatim.openstreetmap.org/search?format=json&q="+encodeURIComponent(local+", Franca SP");
+
+let res=await fetch(url);
+
+let data=await res.json();
+
+if(data.length>0){
+
+return{
+lat:parseFloat(data[0].lat),
+lon:parseFloat(data[0].lon)
+};
+
+}
+
+}catch(e){}
+
+return null;
+
+}
+
+async function atualizar(){
+
+cluster.clearLayers();
+
+heat.setLatLngs([]);
+
+document.getElementById("painel").innerHTML="";
+
+let noticias=await pegarNoticias();
+
+for(let n of noticias){
+
+let tipo=detectarTipo(n.titulo);
+
+if(!tipo) continue;
+
+let local=extrairLocal(n.titulo);
+
+if(!local) continue;
+
+let coords=await geocode(local);
+
+if(!coords) continue;
+
+let horario=n.data.toLocaleString("pt-BR");
+
+adicionarNoticia(
+coords.lat,
+coords.lon,
+n.titulo,
+horario,
+tipo
+);
+
+}
+
+}
+
+setInterval(atualizar,5000);
+
+atualizar();
+
 </script>
+
 </body>
 </html>
