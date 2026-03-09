@@ -2,36 +2,29 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Radar de Ocorrências - Franca SP</title>
+<title>Radar de Ocorrências Franca</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"/>
-
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
 
 <style>
 
 body{
 margin:0;
+font-family:Arial;
 background:#111;
 color:white;
-font-family:Arial;
 }
 
 #map{
-height:85vh;
+height:75vh;
 }
 
 #painel{
-height:15vh;
+height:25vh;
 background:#222;
 overflow:auto;
 padding:10px;
-}
-
-#ranking{
-margin-top:10px;
 }
 
 </style>
@@ -39,155 +32,75 @@ margin-top:10px;
 
 <body>
 
-<h2 style="padding:10px">Radar de Ocorrências - Franca (últimas 24h)</h2>
+<h2 style="padding:10px">Radar de Ocorrências - Franca</h2>
 
 <div id="map"></div>
 
 <div id="painel">
 
-<b>Ocorrências:</b>
-<div id="lista"></div>
-
-<div id="ranking">
-<b>Ranking de bairros (notícias):</b>
-<div id="rankingLista"></div>
-</div>
+<h3>Ocorrências últimas 24h</h3>
+<div id="timeline"></div>
 
 </div>
 
 <script>
 
-var map = L.map('map').setView([-20.539,-47.401],13)
+const map = L.map('map').setView([-20.538,-47.401],13)
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map)
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png')
+.addTo(map)
 
-var cluster = L.markerClusterGroup()
-
-map.addLayer(cluster)
-
-var bairrosRanking = {}
-
-const feeds=[
+const feeds = [
 
 "https://g1.globo.com/rss/sp/franca-jacarei/index.xml",
-"https://acidadeon.com/franca/rss",
-"https://g1.globo.com/rss/sp/cn/index.xml"
+"https://acidadeon.com/franca/rss"
 
 ]
 
-const bairrosFranca=[
-
-"Centro",
-"Jardim Planalto",
-"Jardim Paulista",
-"Vila Santa Cruz",
-"Vila Santa Clara",
-"Jardim Aeroporto",
-"Jardim Redentor",
-"Parque do Horto",
-"Jardim Lima",
-"Jardim Noêmia",
-"Vila Raycos",
-"Jardim Cambuí",
-"Residencial Amazonas",
-"City Petrópolis",
-"Vila Industrial",
-"Parque Vicente Leporace",
-"Jardim Petraglia",
-"Jardim Paineiras",
-"Jardim Francano",
-"Santa Terezinha"
-
-]
-
-function detectarTipo(t){
+function tipoCrime(t){
 
 t=t.toLowerCase()
 
-if(t.includes("acidente")) return "acidente"
-
-if(t.includes("roubo")||t.includes("assalto")) return "roubo"
-
-if(t.includes("assassinato")||t.includes("homicídio")) return "assassinato"
-
-return null
-
-}
-
-function extrairLocal(texto){
-
-let rua=texto.match(/(Rua|Avenida|Av|Praça|Travessa) [\w\s]+/i)
-
-if(rua) return rua[0]
-
-for(let b of bairrosFranca){
-
-if(texto.includes(b)) return b
-
-}
+if(t.includes("acidente")) return "yellow"
+if(t.includes("roubo")) return "red"
+if(t.includes("assalto")) return "red"
+if(t.includes("homicídio")) return "black"
+if(t.includes("assassinato")) return "black"
 
 return null
 
 }
 
-async function geocode(local){
-
-let url="https://nominatim.openstreetmap.org/search?format=json&q="+encodeURIComponent(local+", Franca SP")
-
-let res=await fetch(url)
-
-let data=await res.json()
-
-if(data.length>0){
-
-return{
-
-lat:parseFloat(data[0].lat),
-lon:parseFloat(data[0].lon)
-
-}
-
-}
-
-return null
-
-}
-
-async function pegarNoticias(){
+async function rss(){
 
 const proxy="https://api.allorigins.win/get?url="
 
-let noticias=[]
-
+let lista=[]
 let agora=new Date()
 
-for(let feed of feeds){
+for(let f of feeds){
 
 try{
 
-let res=await fetch(proxy+encodeURIComponent(feed))
+let r=await fetch(proxy+encodeURIComponent(f))
+let j=await r.json()
 
-let data=await res.json()
-
-let xml=new DOMParser().parseFromString(data.contents,"text/xml")
+let xml=new DOMParser().parseFromString(j.contents,"text/xml")
 
 let items=xml.querySelectorAll("item")
 
-items.forEach(item=>{
+items.forEach(i=>{
 
-let titulo=item.querySelector("title").textContent
+let titulo=i.querySelector("title").textContent
+let data=new Date(i.querySelector("pubDate").textContent)
 
-let pub=new Date(item.querySelector("pubDate").textContent)
+let horas=(agora-data)/(1000*60*60)
 
-let diff=(agora-pub)/(1000*60*60)
+if(horas<=24){
 
-if(diff<=24){
-
-noticias.push({
-
+lista.push({
 titulo:titulo,
-data:pub
-
+data:data
 })
 
 }
@@ -198,100 +111,50 @@ data:pub
 
 }
 
-return noticias
-
-}
-
-function corTipo(tipo){
-
-if(tipo=="acidente") return "yellow"
-
-if(tipo=="roubo") return "red"
-
-if(tipo=="assassinato") return "black"
-
-}
-
-function atualizarRanking(){
-
-let html=""
-
-let ordenado=Object.entries(bairrosRanking)
-
-ordenado.sort((a,b)=>b[1]-a[1])
-
-ordenado.forEach(i=>{
-
-html+=i[0]+" : "+i[1]+"<br>"
-
-})
-
-document.getElementById("rankingLista").innerHTML=html
+return lista
 
 }
 
 async function atualizar(){
 
-cluster.clearLayers()
+document.getElementById("timeline").innerHTML=""
 
-document.getElementById("lista").innerHTML=""
-
-bairrosRanking={}
-
-let noticias=await pegarNoticias()
+let noticias=await rss()
 
 for(let n of noticias){
 
-let tipo=detectarTipo(n.titulo)
+let tipo=tipoCrime(n.titulo)
 
 if(!tipo) continue
 
-let local=extrairLocal(n.titulo)
+let lat=-20.538 + (Math.random()*0.05)
+let lon=-47.401 + (Math.random()*0.05)
 
-if(!local) continue
+let marker=L.circleMarker(
 
-let coord=await geocode(local)
+[lat,lon],
+{
+radius:8,
+color:tipo,
+fillColor:tipo,
+fillOpacity:0.9
+}
 
-if(!coord) continue
-
-let cor=corTipo(tipo)
-
-let marker=L.circleMarker([coord.lat,coord.lon],{
-
-radius:7,
-color:cor,
-fillColor:cor,
-fillOpacity:0.8
-
-})
+).addTo(map)
 
 let hora=n.data.toLocaleString("pt-BR")
 
 marker.bindPopup(
 
-"<b>"+n.titulo+"</b><br>"+
-"Tipo: "+tipo+"<br>"+
-"Publicado: "+hora
+"<b>"+n.titulo+"</b><br>"+hora
 
 )
 
-cluster.addLayer(marker)
+document.getElementById("timeline").innerHTML+=
 
-document.getElementById("lista").innerHTML+=
-
-n.titulo+" ("+hora+")<br>"
-
-if(!bairrosRanking[local]){
-
-bairrosRanking[local]=0
+hora+" - "+n.titulo+"<br>"
 
 }
-
-bairrosRanking[local]++
-
-}
-
-atualizarRanking()
 
 }
 
