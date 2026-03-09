@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Mapa de Ocorrências Real - Franca SP</title>
+<title>Mapa de Ocorrências - Franca SP</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css"/>
@@ -31,7 +31,6 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 // 2️⃣ Camadas
 var camadaCluster = L.markerClusterGroup();
 var heatLayer = L.heatLayer([], {radius: 25, blur: 15, maxZoom: 17}).addTo(map);
-
 map.addLayer(camadaCluster);
 
 // 3️⃣ Adicionar notícia
@@ -50,10 +49,8 @@ function adicionarNoticia(lat, lon, titulo, horario, tipo){
   marcador.bindPopup(`<b>${tipo.toUpperCase()}</b><br>${titulo}<br>${horario}`);
   camadaCluster.addLayer(marcador);
 
-  // Heatmap
   heatLayer.addLatLng([lat, lon, 1]);
 
-  // Painel
   var painel = document.getElementById("painel");
   var span = document.createElement("span");
   span.className = "ocorrencia";
@@ -119,10 +116,19 @@ function detectarTipo(titulo){
   return "outro";
 }
 
-// 8️⃣ Extrair endereço
-function extrairEndereco(titulo){
+// 8️⃣ Extrair endereço ou bairro
+function extrairLocal(titulo){
+  // Primeiro tenta endereço
   let match = titulo.match(/(Rua|Avenida|Av|Praça|Travessa|Alameda) [\w\s]+/i);
-  return match ? match[0] : null;
+  if(match) return match[0];
+
+  // Tenta bairros mais comuns (exemplo simplificado)
+  let bairros = ["Centro","Vila Santa Clara","Jardim Planalto","Vila Lemos","Jardim Paulista"];
+  for(let b of bairros){
+    if(titulo.includes(b)) return b;
+  }
+
+  return null;
 }
 
 // 9️⃣ Atualizar mapa
@@ -138,10 +144,10 @@ async function atualizarMapa(){
   }
 
   for(const n of noticias){
-    let endereco = extrairEndereco(n.titulo);
-    if(!endereco) continue; // mostra apenas com endereço válido
+    let local = extrairLocal(n.titulo);
+    if(!local) continue; // só mostra se tiver endereço ou bairro
 
-    let coords = await geocodeEndereco(endereco);
+    let coords = await geocodeEndereco(local);
     if(!coords) continue;
 
     let tipo = detectarTipo(n.titulo);
