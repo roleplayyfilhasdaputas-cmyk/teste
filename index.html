@@ -35,7 +35,7 @@ iframe{width:100%;height:100%;border:none;}
 </div>
 
 <div id="painelAtencao">
-<h3>AVIÕES ESTRANGEIROS EM TERRITÓRIO ALIENÍGENA</h3>
+<h3>AVIÕES ESTRANGEIROS DETECTADOS FORA DO SEU PAÍS DE ORIGEM</h3>
 <div id="listaAtencao">Nenhum avião estrangeiro detectado</div>
 </div>
 
@@ -103,24 +103,24 @@ somAlerta.play()
 }catch(e){console.log("Erro ao detectar B-2",e)}
 }
 
-// Detecta aviões estrangeiros em território
+// Detecta aviões estrangeiros fora do país de origem
 async function detectarEstrangeiros(){
 try{
 const res=await fetch("https://api.adsbexchange.com/v2/mil/")
 const data=await res.json()
 let aeronaves=data.ac
-// Defina território monitorado (exemplo LAT/LON box)
-const latMin=-15,latMax=15,lonMin=-50,lonMax=-30 // exemplo
 aeronaves.forEach(av=>{
 let lat=av.lat,lon=av.lon
 let pais=av.from||av.country||"Desconhecido"
 let tipo=av.t||av.desc||av.r||"Desconhecido"
 let alt=av.alt||"desconhecida", vel=av.gs||"desconhecida"
 let horario=new Date().toLocaleTimeString()
-if(lat>=latMin&&lat<=latMax&&lon>=lonMin&&lon<=lonMax&&pais!=="BR"){ // estrangeiro em território
+// Simulação: se o país não for BR, considera fora do país de origem
+if(pais!=="BR"){
 let id=av.hex||av.icao||tipo
 adicionarAviãoEstrangeiro(id,tipo,pais,horario,lat,lon,alt,vel)
-}})
+}
+})
 }catch(e){console.log("Erro ao detectar aviões estrangeiros",e)}
 }
 
