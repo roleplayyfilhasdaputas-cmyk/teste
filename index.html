@@ -3,82 +3,28 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Painel do Biel - B-2 Spirit</title>
+<title>Painel do Biel - B-2 & Atenção</title>
 <style>
-body{
-margin:0;
-font-family:Courier New, monospace;
-background:#050505;
-color:#00ff9c;
-}
-header{
-background:#111;
-padding:10px;
-display:flex;
-flex-wrap:wrap;
-justify-content:space-between;
-align-items:center;
-border-bottom:2px solid #00ff9c;
-}
-button{
-background:#000;
-color:#00ff9c;
-border:1px solid #00ff9c;
-padding:8px 12px;
-cursor:pointer;
-margin:2px;
-font-size:14px;
-}
-#painelAparicoes{
-position:fixed;
-top:60px;
-right:10px;
-width:90%;
-max-width:450px;
-height:65%;
-background:#000;
-border:2px solid #00ff9c;
-padding:10px;
-display:none;
-overflow:auto;
-z-index:999;
-}
-#conteudo{
-height:calc(100vh - 60px);
-}
-iframe{
-width:100%;
-height:100%;
-border:none;
-}
-#alerta{
-background:#111;
-border-top:2px solid red;
-color:red;
-padding:8px;
-font-size:13px;
-text-align:center;
-}
-.aparicao{
-margin-bottom:5px;
-border-bottom:1px solid #00ff9c;
-padding-bottom:2px;
-word-break:break-word;
-}
-@media (max-width:600px){
-header{
-flex-direction:column;
-align-items:flex-start;
-}
-}
+body{margin:0;font-family:Courier New, monospace;background:#050505;color:#00ff9c;}
+header{background:#111;padding:10px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;border-bottom:2px solid #00ff9c;}
+button{background:#000;color:#00ff9c;border:1px solid #00ff9c;padding:8px 12px;cursor:pointer;margin:2px;font-size:14px;}
+#painelAparicoes,#painelAtencao{position:fixed;top:60px;width:90%;max-width:450px;height:65%;background:#000;border:2px solid #00ff9c;padding:10px;overflow:auto;z-index:999;}
+#painelAparicoes{right:10px;display:none;}
+#painelAtencao{left:5%;border-color:red;display:none;}
+#conteudo{height:calc(100vh - 60px);}
+iframe{width:100%;height:100%;border:none;}
+#alerta{background:#111;border-top:2px solid red;color:red;padding:8px;font-size:13px;text-align:center;}
+.aparicao{margin-bottom:5px;border-bottom:1px solid #00ff9c;padding-bottom:2px;word-break:break-word;}
+@media (max-width:600px){header{flex-direction:column;align-items:flex-start;}}
 </style>
 </head>
 <body>
 
 <header>
-<div>🛰 PAINEL DO BIEL - B-2 Spirit</div>
+<div>🛰 PAINEL DO BIEL - B-2 & ATENÇÃO</div>
 <div>
 <button onclick="toggleAparicoes()">APARIÇÕES</button>
+<button onclick="toggleAtencao()">ATENÇÃO</button>
 🕒 <span id="hora"></span>
 </div>
 </header>
@@ -88,82 +34,100 @@ align-items:flex-start;
 <div id="listaAparicoes">Nenhuma aparição registrada</div>
 </div>
 
+<div id="painelAtencao">
+<h3>AVIÕES ESTRANGEIROS EM TERRITÓRIO ALIENÍGENA</h3>
+<div id="listaAtencao">Nenhum avião estrangeiro detectado</div>
+</div>
+
 <div id="conteudo">
 <iframe id="radar" src="https://globe.adsbexchange.com/?mil"></iframe>
 </div>
 
-<div id="alerta">
-⚠ MONITORAMENTO DE AVIÕES MILITARES ATIVO
-</div>
+<div id="alerta">⚠ MONITORAMENTO DE AVIÕES MILITARES ATIVO</div>
 
 <audio id="somAlerta">
 <source src="https://www.soundjay.com/buttons/sounds/beep-07.mp3" type="audio/mpeg">
 </audio>
 
 <script>
-const hora = document.getElementById("hora")
-const alerta = document.getElementById("alerta")
-const lista = document.getElementById("listaAparicoes")
-const painel = document.getElementById("painelAparicoes")
-const radar = document.getElementById("radar")
-const somAlerta = document.getElementById("somAlerta")
+const hora=document.getElementById("hora")
+const alerta=document.getElementById("alerta")
+const lista=document.getElementById("listaAparicoes")
+const painel=document.getElementById("painelAparicoes")
+const painelAtencao=document.getElementById("painelAtencao")
+const listaAtencao=document.getElementById("listaAtencao")
+const radar=document.getElementById("radar")
+const somAlerta=document.getElementById("somAlerta")
 
-setInterval(()=>{
-hora.innerText = new Date().toLocaleTimeString()
-},1000)
+setInterval(()=>{hora.innerText=new Date().toLocaleTimeString()},1000)
+function toggleAparicoes(){painel.style.display=painel.style.display==="none"?"block":"none"}
+function toggleAtencao(){painelAtencao.style.display=painelAtencao.style.display==="none"?"block":"none"}
 
-function toggleAparicoes(){
-painel.style.display = painel.style.display === "none" ? "block" : "none"
-}
-
-// Histórico de rastreio para trilha
-let trilhas = {}
-
-// Apenas B-2 Spirit
-function adicionarAparicao(id, tipo, horario, lat, lon, alt, vel){
-let linha = document.createElement("div")
-linha.className = "aparicao"
-linha.innerText = `🛩 ${tipo} | ${horario} | LAT:${lat} | LON:${lon} | ALT:${alt} ft | SPD:${vel} kt`
+let trilhas={}
+function adicionarAparicao(id,tipo,horario,lat,lon,alt,vel){
+let linha=document.createElement("div")
+linha.className="aparicao"
+linha.innerText=`🛩 ${tipo} | ${horario} | LAT:${lat} | LON:${lon} | ALT:${alt} ft | SPD:${vel} kt`
 lista.prepend(linha)
-if(!trilhas[id]) trilhas[id] = []
-trilhas[id].push({lat, lon, horario})
+if(!trilhas[id]) trilhas[id]=[]
+trilhas[id].push({lat,lon,horario})
 }
 
-// Detecta B-2 Spirit via ADS-B
+function adicionarAviãoEstrangeiro(id,tipo,pais,horario,lat,lon,alt,vel){
+let linha=document.createElement("div")
+linha.className="aparicao"
+linha.innerText=`✈️ ${tipo} (${pais}) | ${horario} | LAT:${lat} | LON:${lon} | ALT:${alt} ft | SPD:${vel} kt`
+listaAtencao.prepend(linha)
+alerta.innerText=`🚨 AVIÃO ESTRANGEIRO DETECTADO: ${tipo} (${pais})`
+somAlerta.play()
+}
+
+// Detecta B-2 Spirit
 async function detectarB2(){
 try{
-const res = await fetch("https://api.adsbexchange.com/v2/mil/")
-const data = await res.json()
-let aeronaves = data.ac
-
-let encontrados = aeronaves.filter(a => 
-(a.t && a.t.includes("B2")) ||
-(a.desc && a.desc.includes("B-2")) ||
-(a.r && a.r.includes("SPIRIT"))
-)
-
-if(encontrados.length > 0){
+const res=await fetch("https://api.adsbexchange.com/v2/mil/")
+const data=await res.json()
+let encontrados=data.ac.filter(a=>(a.t&&a.t.includes("B2"))||(a.desc&&a.desc.includes("B-2"))||(a.r&&a.r.includes("SPIRIT")))
+if(encontrados.length>0){
 encontrados.forEach(av=>{
-let id = av.hex || av.icao || av.t
-let lat = av.lat
-let lon = av.lon
-let alt = av.alt || "desconhecida"
-let vel = av.gs || "desconhecida"
-let horario = new Date().toLocaleTimeString()
-let tipo = av.t || av.desc || av.r || "B-2 Spirit"
-adicionarAparicao(id, tipo, horario, lat, lon, alt, vel)
-radar.src = `https://globe.adsbexchange.com/?lat=${lat}&lon=${lon}&zoom=8&mil`
-alerta.innerText = `🚨 B-2 SPIRIT DETECTADO`
+let id=av.hex||av.icao||av.t
+let lat=av.lat, lon=av.lon, alt=av.alt||"desconhecida", vel=av.gs||"desconhecida"
+let horario=new Date().toLocaleTimeString()
+let tipo=av.t||av.desc||av.r||"B-2 Spirit"
+adicionarAparicao(id,tipo,horario,lat,lon,alt,vel)
+radar.src=`https://globe.adsbexchange.com/?lat=${lat}&lon=${lon}&zoom=8&mil`
+alerta.innerText=`🚨 B-2 SPIRIT DETECTADO`
 somAlerta.play()
 })
 }
-}catch(e){
-console.log("Erro ao detectar B-2", e)
-}
+}catch(e){console.log("Erro ao detectar B-2",e)}
 }
 
-setInterval(detectarB2,30000)
+// Detecta aviões estrangeiros em território
+async function detectarEstrangeiros(){
+try{
+const res=await fetch("https://api.adsbexchange.com/v2/mil/")
+const data=await res.json()
+let aeronaves=data.ac
+// Defina território monitorado (exemplo LAT/LON box)
+const latMin=-15,latMax=15,lonMin=-50,lonMax=-30 // exemplo
+aeronaves.forEach(av=>{
+let lat=av.lat,lon=av.lon
+let pais=av.from||av.country||"Desconhecido"
+let tipo=av.t||av.desc||av.r||"Desconhecido"
+let alt=av.alt||"desconhecida", vel=av.gs||"desconhecida"
+let horario=new Date().toLocaleTimeString()
+if(lat>=latMin&&lat<=latMax&&lon>=lonMin&&lon<=lonMax&&pais!=="BR"){ // estrangeiro em território
+let id=av.hex||av.icao||tipo
+adicionarAviãoEstrangeiro(id,tipo,pais,horario,lat,lon,alt,vel)
+}})
+}catch(e){console.log("Erro ao detectar aviões estrangeiros",e)}
+}
+
+setInterval(()=>{
+detectarB2()
+detectarEstrangeiros()
+},30000)
 </script>
-
 </body>
 </html>
