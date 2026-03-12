@@ -1,241 +1,146 @@
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Painel Militar</title>
+
+<title>Painel do Biel</title>
+
 <style>
-/* Fonte digital para HUD */
-@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 
-/* ===== RESET E ESTILO BASE ===== */
-body {
-    margin: 0;
-    font-family: 'Share Tech Mono', monospace;
-    background: radial-gradient(circle at center, #050505, #000000 80%);
-    color: #00ff9c;
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    overflow: hidden;
-    position: relative;
+body{
+margin:0;
+font-family:Courier New, monospace;
+background:#050505;
+color:#00ff9c;
 }
 
-/* ===== LINHAS DE VARREDURA ===== */
-body::after {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: repeating-linear-gradient(
-        to bottom,
-        rgba(0,255,156,0.05),
-        rgba(0,255,156,0.05) 1px,
-        transparent 1px,
-        transparent 3px
-    );
-    pointer-events: none;
-    z-index: 1;
+header{
+background:#111;
+padding:12px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+border-bottom:2px solid #00ff9c;
 }
 
-/* ===== CABEÇALHO ===== */
-header {
-    background: #111;
-    padding: 12px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 2px solid #00ff9c;
-    box-shadow: inset 0 0 10px #00ff9c;
-    animation: glow 1.5s infinite alternate;
-    flex-shrink: 0;
-    z-index: 2;
-    position: relative;
-}
-@keyframes glow {
-    from { box-shadow: inset 0 0 10px #00ff9c; }
-    to { box-shadow: inset 0 0 20px #00ff9c; }
+#conteudo{
+height:80vh;
 }
 
-/* ===== RELÓGIO ===== */
-#hora {
-    font-family: 'Share Tech Mono', monospace;
-    text-shadow: 0 0 5px #00ff9c, 0 0 10px #00ff9c;
-    animation: flicker 1.5s infinite alternate;
-}
-@keyframes flicker {
-    0% { opacity: 1; }
-    50% { opacity: 0.8; }
-    100% { opacity: 1; }
+iframe{
+width:100%;
+height:100%;
+border:none;
 }
 
-/* ===== CONTEÚDO CENTRAL ===== */
-#conteudo {
-    flex: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 2;
-    position: relative;
-}
-iframe {
-    width: 90%;
-    height: 80vh;
-    border: 2px solid #00ff9c;
-    box-shadow: 0 0 15px #00ff9c inset;
-    border-radius: 4px;
+#alerta{
+background:#111;
+border-top:2px solid red;
+color:red;
+padding:8px;
+font-size:13px;
+text-align:center;
 }
 
-/* ===== ALERTA ===== */
-#alerta {
-    background: #111;
-    border-top: 2px solid red;
-    color: red;
-    padding: 8px;
-    font-size: 14px;
-    text-align: center;
-    animation: alertGlow 1s infinite alternate;
-    box-shadow: 0 0 15px red;
-    flex-shrink: 0;
-    z-index: 2;
-    position: relative;
-}
-@keyframes alertGlow {
-    from { text-shadow: 0 0 5px red; }
-    to { text-shadow: 0 0 20px red; }
+#log{
+background:#000;
+color:#00ff9c;
+font-size:11px;
+padding:10px;
+height:120px;
+overflow:auto;
+border-top:1px solid #00ff9c;
 }
 
-/* ===== NOSCRIPT ===== */
-noscript {
-    color: yellow;
-    font-size: 16px;
-    text-align: center;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-}
-
-/* ===== TRANSIÇÃO LEVE ===== */
-* {
-    transition: all 0.2s ease-in-out;
-}
 </style>
+
 </head>
+
 <body>
 
 <header>
-    🛰 PAINEL MILITAR
-    <div>🕒 <span id="hora"></span></div>
+
+<div>🛰 PAINEL DO BIEL</div>
+
+<div>
+🕒 <span id="hora"></span>
+</div>
+
 </header>
 
 <div id="conteudo">
-    <iframe src="https://globe.adsbexchange.com/?mil" title="Mapa de Aviões Militares" sandbox="allow-scripts allow-same-origin" loading="lazy"></iframe>
-    <noscript>
-        ⚠ JavaScript está desativado. Para ver a hora e o mapa, habilite o JavaScript no navegador.
-    </noscript>
+
+<iframe src="https://globe.adsbexchange.com/?mil"></iframe>
+
 </div>
 
-<div id="alerta">⚠ MONITORAMENTO DE AVIÕES MILITARES ATIVO</div>
+<div id="alerta">
+
+⚠ MONITORAMENTO DE AVIÕES MILITARES ATIVO
+
+</div>
+
+<div id="log"></div>
 
 <script>
-/* ===== RELÓGIO ===== */
-const hora = document.getElementById("hora");
-function atualizarHora() {
-    const agora = new Date();
-    hora.innerText = agora.toLocaleString('pt-BR', {
-        hour12: false,
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-    });
-}
-setInterval(atualizarHora, 1000);
-atualizarHora();
 
-/* ===== SIMULAÇÃO DE IAs ===== */
-const conteudo = document.getElementById('conteudo');
+const hora = document.getElementById("hora")
+const alerta = document.getElementById("alerta")
+const log = document.getElementById("log")
 
-// Container das IAs
-const iaContainer = document.createElement('div');
-iaContainer.style.position = 'absolute';
-iaContainer.style.top = '0';
-iaContainer.style.left = '0';
-iaContainer.style.width = '100%';
-iaContainer.style.height = '100%';
-iaContainer.style.pointerEvents = 'none';
-iaContainer.style.zIndex = '3';
-conteudo.appendChild(iaContainer);
+setInterval(()=>{
+hora.innerText = new Date().toLocaleTimeString()
+},1000)
 
-const NUM_IAS = 200;
-const IAs = [];
+async function detectarB2(){
 
-// Cria IAs
-for(let i=0;i<NUM_IAS;i++){
-    const ia = document.createElement('div');
-    ia.style.width = '5px';
-    ia.style.height = '5px';
-    ia.style.backgroundColor = '#00ff9c';
-    ia.style.borderRadius = '50%';
-    ia.style.position = 'absolute';
-    ia.style.left = Math.random()*100 + '%';
-    ia.style.top = Math.random()*100 + '%';
-    iaContainer.appendChild(ia);
-    IAs.push({
-        el: ia,
-        x: Math.random() * window.innerWidth,
-        y: Math.random() * window.innerHeight,
-        vx: (Math.random()-0.5)*1.5,
-        vy: (Math.random()-0.5)*1.5
-    });
+try{
+
+const res = await fetch("https://api.adsbexchange.com/v2/mil/")
+const data = await res.json()
+
+let aeronaves = data.ac
+
+let encontrados = aeronaves.filter(a =>
+(a.t && a.t.includes("B2")) ||
+(a.desc && a.desc.includes("B-2")) ||
+(a.r && a.r.includes("SPIRIT"))
+)
+
+if(encontrados.length > 0){
+
+alerta.innerText = "🚨 POSSÍVEL B-2 SPIRIT DETECTADO NO RADAR"
+
+encontrados.forEach(b2=>{
+
+let linha = document.createElement("div")
+
+linha.innerText =
+"DETECÇÃO: " +
+(new Date().toLocaleTimeString()) +
+" | CALLSIGN: " + (b2.r || "desconhecido") +
+" | LAT: " + b2.lat +
+" | LON: " + b2.lon
+
+log.prepend(linha)
+
+})
+
 }
 
-// Alvos simulados (aviões/cacas)
-const NUM_ALVOS = 20;
-const alvos = [];
-for(let i=0;i<NUM_ALVOS;i++){
-    alvos.push({
-        x: Math.random()*window.innerWidth,
-        y: Math.random()*window.innerHeight
-    });
+}catch(e){
+
+console.log("Erro ao verificar aeronaves")
+
 }
 
-// Atualiza posição das IAs
-function atualizarIAs(){
-    IAs.forEach(ia => {
-        // Escolhe alvo aleatório para perseguir
-        const alvo = alvos[Math.floor(Math.random()*NUM_ALVOS)];
-        const dx = alvo.x - ia.x;
-        const dy = alvo.y - ia.y;
-        const dist = Math.sqrt(dx*dx + dy*dy) || 1;
-        ia.vx = (dx/dist) * 1;
-        ia.vy = (dy/dist) * 1;
-
-        ia.x += ia.vx;
-        ia.y += ia.vy;
-
-        // Rebote nas bordas
-        if(ia.x < 0) ia.x = window.innerWidth;
-        if(ia.x > window.innerWidth) ia.x = 0;
-        if(ia.y < 0) ia.y = window.innerHeight;
-        if(ia.y > window.innerHeight) ia.y = 0;
-
-        ia.el.style.left = ia.x + 'px';
-        ia.el.style.top = ia.y + 'px';
-    });
-
-    // Atualiza alvos simulados
-    alvos.forEach(alvo=>{
-        alvo.x += (Math.random()-0.5)*2;
-        alvo.y += (Math.random()-0.5)*2;
-    });
-
-    requestAnimationFrame(atualizarIAs);
 }
 
-atualizarIAs();
+setInterval(detectarB2,30000)
+
 </script>
 
 </body>
