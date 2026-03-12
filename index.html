@@ -26,24 +26,29 @@ align-items:center;
 border-bottom:2px solid #00ff9c;
 }
 
-/* painel de aparições */
-
-#aparicoes{
+button{
 background:#000;
-border-bottom:2px solid #00ff9c;
-padding:10px;
-font-size:12px;
+color:#00ff9c;
+border:1px solid #00ff9c;
+padding:5px 10px;
+cursor:pointer;
 }
 
-#listaAparicoes{
-margin-top:6px;
-max-height:120px;
+#painelAparicoes{
+position:fixed;
+top:60px;
+right:10px;
+width:320px;
+height:300px;
+background:#000;
+border:2px solid #00ff9c;
+padding:10px;
+display:none;
 overflow:auto;
-color:#00ff9c;
 }
 
 #conteudo{
-height:70vh;
+height:80vh;
 }
 
 iframe{
@@ -72,18 +77,22 @@ text-align:center;
 <div>🛰 PAINEL DO BIEL</div>
 
 <div>
+
+<button onclick="toggleAparicoes()">APARIÇÕES</button>
+
 🕒 <span id="hora"></span>
+
 </div>
 
 </header>
 
-<div id="aparicoes">
+<div id="painelAparicoes">
 
-🚨 APARIÇÕES B-2 SPIRIT
+<h3>APARIÇÕES B-2 SPIRIT</h3>
 
 <div id="listaAparicoes">
 
-Nenhuma aparição detectada ainda
+Nenhuma aparição ainda
 
 </div>
 
@@ -106,10 +115,25 @@ Nenhuma aparição detectada ainda
 const hora = document.getElementById("hora")
 const alerta = document.getElementById("alerta")
 const lista = document.getElementById("listaAparicoes")
+const painel = document.getElementById("painelAparicoes")
 
 setInterval(()=>{
 hora.innerText = new Date().toLocaleTimeString()
 },1000)
+
+function toggleAparicoes(){
+
+if(painel.style.display === "none"){
+
+painel.style.display = "block"
+
+}else{
+
+painel.style.display = "none"
+
+}
+
+}
 
 async function detectarB2(){
 
