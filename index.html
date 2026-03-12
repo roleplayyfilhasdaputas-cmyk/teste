@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Painel do Biel - B-2 & Atenção</title>
+<title>Painel do Biel - B-2 & Estrangeiros</title>
 <style>
 body{margin:0;font-family:Courier New, monospace;background:#050505;color:#00ff9c;}
 header{background:#111;padding:10px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;border-bottom:2px solid #00ff9c;}
@@ -21,7 +21,7 @@ iframe{width:100%;height:100%;border:none;}
 <body>
 
 <header>
-<div>🛰 PAINEL DO BIEL - B-2 & ATENÇÃO</div>
+<div>🛰 PAINEL DO BIEL - B-2 & Estrangeiros</div>
 <div>
 <button onclick="toggleAparicoes()">APARIÇÕES</button>
 <button onclick="toggleAtencao()">ATENÇÃO</button>
@@ -64,6 +64,8 @@ function toggleAparicoes(){painel.style.display=painel.style.display==="none"?"b
 function toggleAtencao(){painelAtencao.style.display=painelAtencao.style.display==="none"?"block":"none"}
 
 let trilhas={}
+
+// Adiciona B-2 Spirit
 function adicionarAparicao(id,tipo,horario,lat,lon,alt,vel){
 let linha=document.createElement("div")
 linha.className="aparicao"
@@ -73,6 +75,7 @@ if(!trilhas[id]) trilhas[id]=[]
 trilhas[id].push({lat,lon,horario})
 }
 
+// Adiciona avião estrangeiro detectado fora do país
 function adicionarAviãoEstrangeiro(id,tipo,pais,horario,lat,lon,alt,vel){
 let linha=document.createElement("div")
 linha.className="aparicao"
@@ -88,7 +91,6 @@ try{
 const res=await fetch("https://api.adsbexchange.com/v2/mil/")
 const data=await res.json()
 let encontrados=data.ac.filter(a=>(a.t&&a.t.includes("B2"))||(a.desc&&a.desc.includes("B-2"))||(a.r&&a.r.includes("SPIRIT")))
-if(encontrados.length>0){
 encontrados.forEach(av=>{
 let id=av.hex||av.icao||av.t
 let lat=av.lat, lon=av.lon, alt=av.alt||"desconhecida", vel=av.gs||"desconhecida"
@@ -99,7 +101,6 @@ radar.src=`https://globe.adsbexchange.com/?lat=${lat}&lon=${lon}&zoom=8&mil`
 alerta.innerText=`🚨 B-2 SPIRIT DETECTADO`
 somAlerta.play()
 })
-}
 }catch(e){console.log("Erro ao detectar B-2",e)}
 }
 
@@ -109,18 +110,23 @@ try{
 const res=await fetch("https://api.adsbexchange.com/v2/mil/")
 const data=await res.json()
 let aeronaves=data.ac
+let count=0
 aeronaves.forEach(av=>{
-let lat=av.lat,lon=av.lon
+let lat=av.lat, lon=av.lon
 let pais=av.from||av.country||"Desconhecido"
 let tipo=av.t||av.desc||av.r||"Desconhecido"
 let alt=av.alt||"desconhecida", vel=av.gs||"desconhecida"
 let horario=new Date().toLocaleTimeString()
-// Simulação: se o país não for BR, considera fora do país de origem
-if(pais!=="BR"){
+// Aqui consideramos aviões de outros países, fora do seu país de origem
+if(pais!=="BR"){ // Ajuste "BR" para o seu país
 let id=av.hex||av.icao||tipo
 adicionarAviãoEstrangeiro(id,tipo,pais,horario,lat,lon,alt,vel)
+count++
 }
 })
+if(count===0){
+listaAtencao.innerHTML="Nenhum avião estrangeiro detectado"
+}
 }catch(e){console.log("Erro ao detectar aviões estrangeiros",e)}
 }
 
