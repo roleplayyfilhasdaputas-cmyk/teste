@@ -76,9 +76,10 @@ align-items:flex-start;
 <body>
 
 <header>
-<div>🛰 PAINEL DO BIEL PRO - Aviões de Ataque</div>
+<div>🛰 PAINEL DO BIEL PRO</div>
 <div>
 <button onclick="toggleAparicoes()">APARIÇÕES</button>
+<button onclick="toggleAtenção()">ATENÇÃO</button>
 🕒 <span id="hora"></span>
 </div>
 </header>
@@ -86,6 +87,11 @@ align-items:flex-start;
 <div id="painelAparicoes">
 <h3>APARIÇÕES AVIÕES DE ATAQUE</h3>
 <div id="listaAparicoes">Nenhuma aparição registrada</div>
+</div>
+
+<div id="painelAtencao" style="display:none; position:fixed; top:60px; left:5%; width:90%; max-width:450px; height:65%; background:#000; border:2px solid red; padding:10px; overflow:auto; z-index:999;">
+<h3>ATENÇÃO - AVIÕES ESTRANGEIROS</h3>
+<div id="listaAtenção">Nenhum avião estrangeiro detectado</div>
 </div>
 
 <div id="conteudo">
@@ -107,6 +113,8 @@ const lista = document.getElementById("listaAparicoes")
 const painel = document.getElementById("painelAparicoes")
 const radar = document.getElementById("radar")
 const somAlerta = document.getElementById("somAlerta")
+const painelAtencao = document.getElementById("painelAtencao")
+const listaAtencao = document.getElementById("listaAtenção")
 
 setInterval(()=>{
 hora.innerText = new Date().toLocaleTimeString()
@@ -114,6 +122,9 @@ hora.innerText = new Date().toLocaleTimeString()
 
 function toggleAparicoes(){
 painel.style.display = painel.style.display === "none" ? "block" : "none"
+}
+function toggleAtenção(){
+painelAtencao.style.display = painelAtencao.style.display === "none" ? "block" : "none"
 }
 
 // Histórico de rastreio para trilha
@@ -127,9 +138,18 @@ let linha = document.createElement("div")
 linha.className = "aparicao"
 linha.innerText = `🛩 ${tipo} | ${horario} | LAT:${lat} | LON:${lon} | ALT:${alt} ft | SPD:${vel} kt`
 lista.prepend(linha)
-// Atualiza trilha
 if(!trilhas[id]) trilhas[id] = []
 trilhas[id].push({lat, lon, horario})
+}
+
+// Aviões estrangeiros
+function adicionarAviãoEstrangeiro(id, tipo, pais, horario, lat, lon, alt, vel){
+let linha = document.createElement("div")
+linha.className = "aparicao"
+linha.innerText = `✈️ ${tipo} (${pais}) | ${horario} | LAT:${lat} | LON:${lon} | ALT:${alt} ft | SPD:${vel} kt`
+listaAtencao.prepend(linha)
+alerta.innerText = `🚨 AVIÃO ESTRANGEIRO DETECTADO: ${tipo} (${pais})`
+somAlerta.play()
 }
 
 async function detectarAtaque(){
@@ -137,11 +157,13 @@ try{
 const res = await fetch("https://api.adsbexchange.com/v2/mil/")
 const data = await res.json()
 let aeronaves = data.ac
+
 let encontrados = aeronaves.filter(a => 
 (a.t && tiposAtaque.includes(a.t)) ||
 (a.desc && tiposAtaque.includes(a.desc)) ||
 (a.r && tiposAtaque.includes(a.r))
 )
+
 if(encontrados.length > 0){
 encontrados.forEach(av=>{
 let id = av.hex || av.icao || av.t
@@ -153,12 +175,34 @@ let horario = new Date().toLocaleTimeString()
 let tipo = av.t || av.desc || av.r || "Desconhecido"
 adicionarAparicao(id, tipo, horario, lat, lon, alt, vel)
 radar.src = `https://globe.adsbexchange.com/?lat=${lat}&lon=${lon}&zoom=8&mil`
-alerta.innerText = `🚨 AVIÃO DE ATAQUE DETECTADO: ${tipo}`
-somAlerta.play()
 })
 }
 }catch(e){
 console.log("Erro ao detectar aviões de ataque", e)
+}
+
+// Detecta aviões estrangeiros em território (simulação com país diferente)
+try{
+const res = await fetch("https://api.adsbexchange.com/v2/mil/")
+const data = await res.json()
+let aeronaves = data.ac
+
+// Defina o território monitorado (exemplo: LAT/LON box)
+const latMin = -15, latMax = 15, lonMin = -50, lonMax = -30 // exemplo
+aeronaves.forEach(av=>{
+let lat = av.lat, lon = av.lon
+let pais = av.from || av.country || "Desconhecido"
+let tipo = av.t || av.desc || av.r || "Desconhecido"
+let alt = av.alt || "desconhecida"
+let vel = av.gs || "desconhecida"
+let horario = new Date().toLocaleTimeString()
+if(lat>=latMin && lat<=latMax && lon>=lonMin && lon<=lonMax && pais!=="BR"){ // avião estrangeiro entrando
+let id = av.hex || av.icao || tipo
+adicionarAviãoEstrangeiro(id, tipo, pais, horario, lat, lon, alt, vel)
+}
+})
+}catch(e){
+console.log("Erro ao detectar aviões estrangeiros", e)
 }
 }
 
