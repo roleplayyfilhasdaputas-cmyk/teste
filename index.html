@@ -26,8 +26,24 @@ align-items:center;
 border-bottom:2px solid #00ff9c;
 }
 
+/* painel de aparições */
+
+#aparicoes{
+background:#000;
+border-bottom:2px solid #00ff9c;
+padding:10px;
+font-size:12px;
+}
+
+#listaAparicoes{
+margin-top:6px;
+max-height:120px;
+overflow:auto;
+color:#00ff9c;
+}
+
 #conteudo{
-height:80vh;
+height:70vh;
 }
 
 iframe{
@@ -43,16 +59,6 @@ color:red;
 padding:8px;
 font-size:13px;
 text-align:center;
-}
-
-#log{
-background:#000;
-color:#00ff9c;
-font-size:11px;
-padding:10px;
-height:120px;
-overflow:auto;
-border-top:1px solid #00ff9c;
 }
 
 </style>
@@ -71,6 +77,18 @@ border-top:1px solid #00ff9c;
 
 </header>
 
+<div id="aparicoes">
+
+🚨 APARIÇÕES B-2 SPIRIT
+
+<div id="listaAparicoes">
+
+Nenhuma aparição detectada ainda
+
+</div>
+
+</div>
+
 <div id="conteudo">
 
 <iframe src="https://globe.adsbexchange.com/?mil"></iframe>
@@ -83,13 +101,11 @@ border-top:1px solid #00ff9c;
 
 </div>
 
-<div id="log"></div>
-
 <script>
 
 const hora = document.getElementById("hora")
 const alerta = document.getElementById("alerta")
-const log = document.getElementById("log")
+const lista = document.getElementById("listaAparicoes")
 
 setInterval(()=>{
 hora.innerText = new Date().toLocaleTimeString()
@@ -105,27 +121,29 @@ const data = await res.json()
 let aeronaves = data.ac
 
 let encontrados = aeronaves.filter(a =>
+
 (a.t && a.t.includes("B2")) ||
 (a.desc && a.desc.includes("B-2")) ||
 (a.r && a.r.includes("SPIRIT"))
+
 )
 
 if(encontrados.length > 0){
 
-alerta.innerText = "🚨 POSSÍVEL B-2 SPIRIT DETECTADO NO RADAR"
+alerta.innerText = "🚨 POSSÍVEL B-2 SPIRIT DETECTADO"
 
 encontrados.forEach(b2=>{
+
+let horario = new Date().toLocaleTimeString()
 
 let linha = document.createElement("div")
 
 linha.innerText =
-"DETECÇÃO: " +
-(new Date().toLocaleTimeString()) +
-" | CALLSIGN: " + (b2.r || "desconhecido") +
+"🛩 " + horario +
 " | LAT: " + b2.lat +
 " | LON: " + b2.lon
 
-log.prepend(linha)
+lista.prepend(linha)
 
 })
 
