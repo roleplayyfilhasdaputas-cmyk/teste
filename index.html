@@ -30,7 +30,7 @@ button{
 background:#000;
 color:#00ff9c;
 border:1px solid #00ff9c;
-padding:5px 10px;
+padding:6px 12px;
 cursor:pointer;
 }
 
@@ -92,7 +92,7 @@ text-align:center;
 
 <div id="listaAparicoes">
 
-Nenhuma aparição ainda
+Nenhuma aparição registrada
 
 </div>
 
@@ -100,7 +100,7 @@ Nenhuma aparição ainda
 
 <div id="conteudo">
 
-<iframe src="https://globe.adsbexchange.com/?mil"></iframe>
+<iframe id="radar" src="https://globe.adsbexchange.com/?mil"></iframe>
 
 </div>
 
@@ -116,6 +116,7 @@ const hora = document.getElementById("hora")
 const alerta = document.getElementById("alerta")
 const lista = document.getElementById("listaAparicoes")
 const painel = document.getElementById("painelAparicoes")
+const radar = document.getElementById("radar")
 
 setInterval(()=>{
 hora.innerText = new Date().toLocaleTimeString()
@@ -124,13 +125,9 @@ hora.innerText = new Date().toLocaleTimeString()
 function toggleAparicoes(){
 
 if(painel.style.display === "none"){
-
 painel.style.display = "block"
-
 }else{
-
 painel.style.display = "none"
-
 }
 
 }
@@ -154,9 +151,15 @@ let encontrados = aeronaves.filter(a =>
 
 if(encontrados.length > 0){
 
-alerta.innerText = "🚨 POSSÍVEL B-2 SPIRIT DETECTADO"
+alerta.innerText = "🚨 B-2 SPIRIT DETECTADO"
 
-encontrados.forEach(b2=>{
+let b2 = encontrados[0]
+
+let lat = b2.lat
+let lon = b2.lon
+
+radar.src =
+`https://globe.adsbexchange.com/?lat=${lat}&lon=${lon}&zoom=8&mil`
 
 let horario = new Date().toLocaleTimeString()
 
@@ -164,12 +167,10 @@ let linha = document.createElement("div")
 
 linha.innerText =
 "🛩 " + horario +
-" | LAT: " + b2.lat +
-" | LON: " + b2.lon
+" | LAT: " + lat +
+" | LON: " + lon
 
 lista.prepend(linha)
-
-})
 
 }
 
